@@ -159,12 +159,12 @@ export default function Home() {
             <>
               {/* Wallet */}
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-neutral-800">
-                <code className="text-xs sm:text-sm text-neutral-400">
+                <code className="text-base sm:text-lg text-neutral-300 font-medium">
                   {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
                 </code>
                 <button
                   onClick={disconnect}
-                  className="text-xs text-neutral-500 hover:text-white"
+                  className="text-sm px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white rounded-lg transition-colors"
                 >
                   Disconnect
                 </button>
@@ -307,8 +307,18 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <p className="text-center text-neutral-600 text-xs mt-6">
+        <p className="text-center text-neutral-600 text-sm mt-6">
           Gas-free • {FEE_PERCENT}% service fee
+        </p>
+        <p className="text-center mt-2">
+          <a
+            href="https://metasal.xyz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-neutral-500 hover:text-white text-sm transition-colors"
+          >
+            metasal.xyz
+          </a>
         </p>
       </div>
     </div>
