@@ -243,7 +243,7 @@ export default function Home() {
               </a>
               <span className="text-gray-600">•</span>
               <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Just closed my empty Solana accounts and got back ${txResult.amount.toFixed(4)} SOL with @FreeRentSOL! 💸\n\nReclaim your rent: freerent-three.vercel.app`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Just freed my rent and got back ${txResult.amount.toFixed(4)} SOL! 💸\n\nFree your rent: freerent-three.vercel.app`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs bg-black text-white px-2 py-1 rounded hover:bg-gray-800 transition-colors"
@@ -252,7 +252,7 @@ export default function Home() {
                 Share
               </a>
               <a
-                href={`https://t.me/share/url?url=${encodeURIComponent('https://freerent-three.vercel.app')}&text=${encodeURIComponent(`Just closed my empty Solana accounts and got back ${txResult.amount.toFixed(4)} SOL! 💸`)}`}
+                href={`https://t.me/share/url?url=${encodeURIComponent('https://freerent-three.vercel.app')}&text=${encodeURIComponent(`Just freed my rent and got back ${txResult.amount.toFixed(4)} SOL! 💸`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs bg-[#0088cc] text-white px-2 py-1 rounded hover:bg-[#0077b5] transition-colors"
@@ -280,8 +280,9 @@ export default function Home() {
         <div className="w-full max-w-lg">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-3">FreeRent</h1>
-            <p className="text-gray-500 text-sm sm:text-base">Reclaim SOL from unused token accounts</p>
+            <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-2">Free Rent</h1>
+            <p className="text-gray-400 text-sm sm:text-base mb-1">Get your money back</p>
+            <p className="text-cyan-500 text-xs sm:text-sm font-medium">Free your rent</p>
           </div>
 
           {/* Stats */}
