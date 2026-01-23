@@ -283,10 +283,24 @@ export default function Home() {
       )}
       {error && (
         <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-          <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full backdrop-blur-sm">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-300 hover:text-white ml-auto">
-              ✕
+          <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg shadow-lg max-w-md w-full backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <span className="flex-1 text-sm">{error}</span>
+              <button onClick={() => setError(null)} className="text-red-300 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(error);
+                const btn = document.activeElement as HTMLButtonElement;
+                const original = btn.textContent;
+                btn.textContent = "Copied!";
+                setTimeout(() => { btn.textContent = original; }, 1500);
+              }}
+              className="text-xs text-red-300/70 hover:text-red-300 mt-2"
+            >
+              Click to copy error
             </button>
           </div>
         </div>
