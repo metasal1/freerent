@@ -222,6 +222,36 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-6">
+      {/* Toast Notifications */}
+      {txResult && (
+        <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
+          <div className="bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full">
+            <span className="font-semibold">+{txResult.amount.toFixed(4)} SOL claimed</span>
+            <a
+              href={`https://solscan.io/tx/${txResult.signature}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-green-200 text-sm hover:text-white ml-auto"
+            >
+              View tx
+            </a>
+            <button onClick={() => setTxResult(null)} className="text-green-200 hover:text-white">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
+          <div className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-red-200 hover:text-white ml-auto">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <h1 className="text-4xl font-bold text-center mb-2">FreeRent</h1>
@@ -391,28 +421,6 @@ export default function Home() {
             </>
           )}
         </div>
-
-        {/* Success */}
-        {txResult && (
-          <div className="mt-4 p-4 bg-green-900/30 border border-green-500 rounded-lg">
-            <div className="text-green-500 font-semibold">+{txResult.amount.toFixed(4)} SOL claimed</div>
-            <a
-              href={`https://solscan.io/tx/${txResult.signature}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-green-400 text-sm hover:underline"
-            >
-              View transaction
-            </a>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="mt-4 p-4 bg-red-900/30 border border-red-500 rounded-lg">
-            <p className="text-red-400">{error}</p>
-          </div>
-        )}
 
         {/* Footer */}
         <div className="text-center mt-8 text-gray-600 text-sm">
