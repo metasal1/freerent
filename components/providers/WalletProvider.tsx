@@ -1,21 +1,33 @@
 "use client";
 
 import { useMemo } from "react";
-import { ConnectionProvider } from "@solana/wallet-adapter-react";
-import { clusterApiUrl } from "@solana/web3.js";
+import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
+
+import "@solana/wallet-adapter-react-ui/styles.css";
+
+const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://cassandra-bq5oqs-fast-mainnet.helius-rpc.com/";
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const network = process.env.NEXT_PUBLIC_NETWORK === "mainnet-beta"
-    ? "mainnet-beta"
-    : "devnet";
-
-  const endpoint = useMemo(() => {
-    return process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl(network);
-  }, [network]);
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ],
+    []
+  );
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      {children}
+    <ConnectionProvider endpoint={RPC_ENDPOINT}>
+      <SolanaWalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          {children}
+        </WalletModalProvider>
+      </SolanaWalletProvider>
     </ConnectionProvider>
   );
 }

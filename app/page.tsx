@@ -2,16 +2,19 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { usePhantom } from "@/components/WalletButton";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { getTokenAccounts, TokenAccountInfo } from "@/lib/solana/getTokenAccounts";
 import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { FEE_PERCENT, MAX_ACCOUNTS_PER_TX } from "@/lib/solana/constants";
 
-const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com";
+const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://cassandra-bq5oqs-fast-mainnet.helius-rpc.com/";
 
 export default function Home() {
   const connection = useMemo(() => new Connection(RPC_ENDPOINT, "confirmed"), []);
-  const { publicKey, signTransaction, connected, connect, disconnect, connecting } = usePhantom();
+  const { publicKey, signTransaction, connected, disconnect, connecting } = useWallet();
+  const { setVisible } = useWalletModal();
+  const connect = () => setVisible(true);
 
   const [accounts, setAccounts] = useState<TokenAccountInfo[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
