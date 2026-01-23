@@ -1,6 +1,54 @@
 @import "tailwindcss";
 
+:root {
+  --brand: #22d3ee;
+  --brand-dark: #0891b2;
+  --brand-glow: rgba(34, 211, 238, 0.5);
+}
+
 body {
   background: #000;
   color: #fff;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.glow-text {
+  color: var(--brand);
+  text-shadow: 0 0 20px var(--brand-glow), 0 0 40px var(--brand-glow);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 0 0 20px var(--brand-glow), 0 0 40px var(--brand-glow);
+  }
+  50% {
+    text-shadow: 0 0 30px var(--brand-glow), 0 0 60px var(--brand-glow), 0 0 80px var(--brand-glow);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+}
+
+.brand-border {
+  border-color: var(--brand);
+  box-shadow: 0 0 10px var(--brand-glow);
 }

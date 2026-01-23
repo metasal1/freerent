@@ -221,21 +221,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen flex flex-col">
       {/* Toast Notifications */}
       {txResult && (
         <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-          <div className="bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full">
+          <div className="bg-cyan-500/20 border border-cyan-500 text-cyan-400 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full backdrop-blur-sm">
             <span className="font-semibold">+{txResult.amount.toFixed(4)} SOL claimed</span>
             <a
               href={`https://solscan.io/tx/${txResult.signature}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-green-200 text-sm hover:text-white ml-auto"
+              className="text-cyan-300 text-sm hover:text-white ml-auto"
             >
               View tx
             </a>
-            <button onClick={() => setTxResult(null)} className="text-green-200 hover:text-white">
+            <button onClick={() => setTxResult(null)} className="text-cyan-300 hover:text-white">
               ✕
             </button>
           </div>
@@ -243,193 +243,209 @@ export default function Home() {
       )}
       {error && (
         <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-          <div className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full">
+          <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full backdrop-blur-sm">
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-200 hover:text-white ml-auto">
+            <button onClick={() => setError(null)} className="text-red-300 hover:text-white ml-auto">
               ✕
             </button>
           </div>
         </div>
       )}
 
-      <div className="max-w-lg mx-auto">
-        {/* Header */}
-        <h1 className="text-4xl font-bold text-center mb-2">FreeRent</h1>
-        <p className="text-gray-500 text-center mb-8">Reclaim SOL from unused token accounts</p>
-
-        {/* Stats */}
-        {stats && (
-          <div className="flex justify-center gap-8 mb-8 text-center">
-            <div>
-              <div className="text-2xl font-bold">{stats.uniqueWallets}</div>
-              <div className="text-sm text-gray-500">Users</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{stats.totalAccountsClosed}</div>
-              <div className="text-sm text-gray-500">Accounts Closed</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-500">{stats.feeBalance.toFixed(2)}</div>
-              <div className="text-sm text-gray-500">SOL Collected</div>
-            </div>
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
+        <div className="w-full max-w-lg">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-3">FreeRent</h1>
+            <p className="text-gray-500 text-sm sm:text-base">Reclaim SOL from unused token accounts</p>
           </div>
-        )}
 
-        {/* Main Content */}
-        <div className="border border-gray-800 rounded-xl p-6">
-          {!connected ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400 mb-6">Connect your wallet to see reclaimable rent</p>
-              <button
-                onClick={connect}
-                disabled={connecting}
-                className="bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-200 disabled:opacity-50"
-              >
-                {connecting ? "Connecting..." : "Connect Wallet"}
-              </button>
+          {/* Stats */}
+          {stats && (
+            <div className="flex justify-center gap-6 sm:gap-10 mb-8">
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-white">{stats.uniqueWallets}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Users</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-white">{stats.totalAccountsClosed}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Closed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-cyan-400">{stats.feeBalance.toFixed(2)}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">SOL</div>
+              </div>
             </div>
-          ) : loading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Scanning accounts...</p>
-            </div>
-          ) : (
-            <>
-              {/* Wallet Info */}
-              <div className="flex items-center justify-between mb-6">
-                <code className="text-lg">
-                  {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
-                </code>
+          )}
+
+          {/* Main Card */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 backdrop-blur-sm">
+            {!connected ? (
+              <div className="text-center py-10">
+                <div className="text-4xl mb-4 animate-pulse">💸</div>
+                <p className="text-gray-400 mb-6 text-sm">Connect your wallet to see reclaimable rent</p>
                 <button
-                  onClick={disconnect}
-                  className="text-gray-400 hover:text-white px-4 py-2 border border-gray-700 rounded-lg"
+                  onClick={connect}
+                  disabled={connecting}
+                  className="brand-gradient text-black px-8 py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
-                  Disconnect
+                  {connecting ? "Connecting..." : "Select Wallet"}
                 </button>
               </div>
-
-              {/* Quick Close */}
-              {closeableCount > 0 && (
-                <button
-                  onClick={quickClose20}
-                  disabled={closing || closeableCount === 0}
-                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white py-3 rounded-lg font-semibold mb-6"
-                >
-                  Quick Close {Math.min(20, closeableCount)} Accounts
-                </button>
-              )}
-
-              {/* Filter Tabs */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setFilter("empty")}
-                  className={`flex-1 py-2 rounded-lg font-medium ${
-                    filter === "empty" ? "bg-white text-black" : "bg-gray-900 text-gray-400"
-                  }`}
-                >
-                  Claimable ({closeableCount})
-                </button>
-                <button
-                  onClick={() => setFilter("all")}
-                  className={`flex-1 py-2 rounded-lg font-medium ${
-                    filter === "all" ? "bg-white text-black" : "bg-gray-900 text-gray-400"
-                  }`}
-                >
-                  All ({accounts.length})
-                </button>
+            ) : loading ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-500 text-sm">Scanning accounts...</p>
               </div>
-
-              {/* Account List */}
-              {filteredAccounts.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No accounts found</p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto mb-6">
-                  {filteredAccounts.map((account) => {
-                    const key = account.pubkey.toBase58();
-                    const selected = selectedIds.has(key);
-                    const rent = (account.rentLamports / 1e9).toFixed(4);
-
-                    return (
-                      <div
-                        key={key}
-                        onClick={() => account.canClose && toggleSelect(key)}
-                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${
-                          !account.canClose
-                            ? "opacity-40 cursor-not-allowed bg-gray-900"
-                            : selected
-                            ? "bg-green-900/30 border border-green-500"
-                            : "bg-gray-900 hover:bg-gray-800"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {account.canClose && (
-                            <div
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                selected ? "bg-green-500 border-green-500" : "border-gray-600"
-                              }`}
-                            >
-                              {selected && (
-                                <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                          )}
-                          <code className="text-sm text-gray-300">
-                            {key.slice(0, 6)}...{key.slice(-4)}
-                          </code>
-                        </div>
-                        <span className="text-green-500 font-mono font-semibold">{rent}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Select All */}
-              {closeableCount > 0 && (
-                <div className="mb-6">
-                  <button onClick={selectAll} className="text-gray-400 hover:text-white text-sm">
-                    Select all (max {MAX_ACCOUNTS_PER_TX})
+            ) : (
+              <>
+                {/* Wallet Info */}
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-800">
+                  <code className="text-cyan-400 text-sm sm:text-base">
+                    {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
+                  </code>
+                  <button
+                    onClick={disconnect}
+                    className="text-gray-500 hover:text-white text-sm transition-colors"
+                  >
+                    Disconnect
                   </button>
                 </div>
-              )}
 
-              {/* Summary */}
-              {selectedIds.size > 0 && (
-                <div className="bg-gray-900 rounded-lg p-4 mb-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{selectedIds.size} account{selectedIds.size > 1 ? "s" : ""}</div>
-                      <div className="text-sm text-gray-500">{FEE_PERCENT}% fee: {fee.toFixed(4)} SOL</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-green-500">+{netRent.toFixed(4)}</div>
-                      <div className="text-sm text-gray-500">SOL</div>
+                {/* Quick Close */}
+                {closeableCount > 0 && (
+                  <button
+                    onClick={quickClose20}
+                    disabled={closing || closeableCount === 0}
+                    className="w-full brand-gradient text-black py-4 rounded-xl font-bold mb-6 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    {closing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></span>
+                        Processing...
+                      </span>
+                    ) : (
+                      `Quick Close ${Math.min(20, closeableCount)} Accounts`
+                    )}
+                  </button>
+                )}
+
+                {/* Filter Tabs */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setFilter("empty")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filter === "empty"
+                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
+                        : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Claimable ({closeableCount})
+                  </button>
+                  <button
+                    onClick={() => setFilter("all")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filter === "all"
+                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
+                        : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    All ({accounts.length})
+                  </button>
+                </div>
+
+                {/* Account List */}
+                {filteredAccounts.length === 0 ? (
+                  <p className="text-center text-gray-600 py-8 text-sm">No accounts found</p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto mb-4 pr-1">
+                    {filteredAccounts.map((account) => {
+                      const key = account.pubkey.toBase58();
+                      const selected = selectedIds.has(key);
+                      const rent = (account.rentLamports / 1e9).toFixed(4);
+
+                      return (
+                        <div
+                          key={key}
+                          onClick={() => account.canClose && toggleSelect(key)}
+                          className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${
+                            !account.canClose
+                              ? "opacity-30 cursor-not-allowed bg-gray-800/30"
+                              : selected
+                              ? "bg-cyan-500/10 border border-cyan-500/50"
+                              : "bg-gray-800/30 hover:bg-gray-800/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {account.canClose && (
+                              <div
+                                className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                                  selected ? "bg-cyan-500 border-cyan-500" : "border-gray-600"
+                                }`}
+                              >
+                                {selected && (
+                                  <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                            )}
+                            <code className="text-xs text-gray-400">
+                              {key.slice(0, 6)}...{key.slice(-4)}
+                            </code>
+                          </div>
+                          <span className="text-cyan-400 text-sm font-semibold">{rent}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Select All */}
+                {closeableCount > 0 && (
+                  <button onClick={selectAll} className="text-gray-500 hover:text-cyan-400 text-xs mb-4 transition-colors">
+                    Select all (max {MAX_ACCOUNTS_PER_TX})
+                  </button>
+                )}
+
+                {/* Summary */}
+                {selectedIds.size > 0 && (
+                  <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-sm text-gray-300">{selectedIds.size} account{selectedIds.size > 1 ? "s" : ""}</div>
+                        <div className="text-xs text-gray-500">{FEE_PERCENT}% fee: {fee.toFixed(4)} SOL</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-cyan-400">+{netRent.toFixed(4)}</div>
+                        <div className="text-xs text-gray-500">SOL</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Claim Button */}
-              <button
-                onClick={handleClose}
-                disabled={selectedIds.size === 0 || closing}
-                className="w-full bg-white text-black py-4 rounded-lg font-bold text-lg hover:bg-gray-200 disabled:bg-gray-800 disabled:text-gray-500"
-              >
-                {closing ? "Processing..." : selectedIds.size > 0 ? `Claim ${netRent.toFixed(4)} SOL` : "Select accounts"}
-              </button>
-            </>
-          )}
+                {/* Claim Button */}
+                <button
+                  onClick={handleClose}
+                  disabled={selectedIds.size === 0 || closing}
+                  className="w-full bg-gray-800 text-white py-4 rounded-xl font-bold hover:bg-gray-700 disabled:bg-gray-800/50 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                >
+                  {closing ? "Processing..." : selectedIds.size > 0 ? `Claim ${netRent.toFixed(4)} SOL` : "Select accounts"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
+      </main>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-gray-600 text-sm">
-          <p>Gas-free transactions • {FEE_PERCENT}% service fee</p>
-          <a href="https://metasal.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-white">
-            metasal.xyz
-          </a>
-        </div>
-      </div>
+      {/* Footer */}
+      <footer className="border-t border-gray-800/50 py-6 text-center">
+        <p className="text-gray-600 text-xs mb-1">Gas-free transactions • {FEE_PERCENT}% service fee</p>
+        <a href="https://metasal.xyz" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-cyan-400 text-xs transition-colors">
+          metasal.xyz
+        </a>
+      </footer>
     </div>
   );
 }
