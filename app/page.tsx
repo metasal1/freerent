@@ -25,6 +25,23 @@ export default function Home() {
   const [txResult, setTxResult] = useState<{ signature: string; count: number; amount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<{ uniqueWallets: number; totalAccountsClosed: number; feeBalance: number } | null>(null);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
+  const [minRent, setMinRent] = useState<number | null>(null);
+
+  // Fetch SOL price
+  useEffect(() => {
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd")
+      .then((res) => res.json())
+      .then((data) => setSolPrice(data.solana?.usd || null))
+      .catch(() => {});
+  }, []);
+
+  // Fetch minimum rent for token account
+  useEffect(() => {
+    connection.getMinimumBalanceForRentExemption(165) // Token account size
+      .then((lamports) => setMinRent(lamports / 1e9))
+      .catch(() => {});
+  }, [connection]);
 
   const filteredAccounts = useMemo(() => {
     if (filter === "empty") return accounts.filter((a) => a.canClose);
@@ -279,11 +296,29 @@ export default function Home() {
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-lg">
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-2">Free Rent</h1>
             <p className="text-gray-400 text-sm sm:text-base mb-1">Get your money back</p>
-            <p className="text-cyan-500 text-xs sm:text-sm font-medium">Free your rent</p>
+            <p className="text-cyan-500 text-xs sm:text-sm font-medium">freerent.money</p>
           </div>
+
+          {/* Info Section - only show when not connected */}
+          {!connected && (
+            <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4 mb-6 text-sm">
+              <p className="text-cyan-400 font-medium mb-3">What is Free Rent?</p>
+              <ul className="text-gray-400 space-y-2 mb-4">
+                <li>• Every Solana token account (USDC, memecoins, etc.) requires a <span className="text-white">rent deposit</span> of ~{minRent?.toFixed(4) || "0.002"} SOL{solPrice && minRent && <span className="text-cyan-400"> (~${(minRent * solPrice).toFixed(2)})</span>}</li>
+                <li>• Over time, you accumulate <span className="text-white">empty accounts</span> from tokens you've sold or transferred</li>
+                <li>• These empty accounts still <span className="text-white">hold your SOL hostage</span></li>
+              </ul>
+              <p className="text-cyan-400 font-medium mb-2">Free Rent solves this:</p>
+              <ul className="text-gray-400 space-y-1">
+                <li>• Closes empty accounts and <span className="text-white">returns your SOL</span></li>
+                <li>• <span className="text-white">Gas-free</span> — no transaction fees</li>
+                <li>• <span className="text-white">One click</span> — close up to 20 accounts at once</li>
+              </ul>
+            </div>
+          )}
 
           {/* Stats */}
           {stats && (
@@ -443,7 +478,9 @@ export default function Home() {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-cyan-400">+{netRent.toFixed(4)}</div>
-                        <div className="text-xs text-gray-500">SOL</div>
+                        <div className="text-xs text-gray-500">
+                          SOL {solPrice && <span className="text-cyan-400/70">(~${(netRent * solPrice).toFixed(2)})</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
