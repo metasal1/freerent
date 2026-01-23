@@ -391,7 +391,7 @@ export default function Home() {
                   <button
                     onClick={quickClose20}
                     disabled={closing || closeableCount === 0}
-                    className="w-full brand-gradient text-black py-4 rounded-xl font-bold mb-6 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                    className="w-full bg-cyan-500 text-black py-4 rounded-xl font-bold mb-6 hover:bg-cyan-400 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                   >
                     {closing ? (
                       <span className="flex items-center justify-center gap-2">
