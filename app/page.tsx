@@ -228,7 +228,7 @@ export default function Home() {
           <div className="bg-cyan-500/20 border border-cyan-500 text-cyan-400 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md w-full backdrop-blur-sm">
             <span className="font-semibold">+{txResult.amount.toFixed(4)} SOL claimed</span>
             <a
-              href={`https://solscan.io/tx/${txResult.signature}`}
+              href={`https://checkreceipt.xyz/${txResult.signature}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-cyan-300 text-sm hover:text-white ml-auto"
