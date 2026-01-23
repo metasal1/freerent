@@ -40,6 +40,7 @@ export default function Home() {
 
   const fee = totalRent * (FEE_PERCENT / 100);
   const netRent = totalRent - fee;
+  const closeableCount = accounts.filter((a) => a.canClose).length;
 
   useEffect(() => {
     fetch("/api/stats")
@@ -189,64 +190,77 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen p-6">
+      <div className="max-w-lg mx-auto">
         {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
-            💸 FreeRent
-          </h1>
-          <p className="text-neutral-500 text-sm sm:text-base">
-            Reclaim SOL from unused token accounts
-          </p>
-        </div>
+        <h1 className="text-4xl font-bold text-center mb-2">FreeRent</h1>
+        <p className="text-gray-500 text-center mb-8">Reclaim SOL from unused token accounts</p>
 
-        {/* Main Card */}
-        <div className="card p-5 sm:p-6">
+        {/* Stats */}
+        {stats && (
+          <div className="flex justify-center gap-8 mb-8 text-center">
+            <div>
+              <div className="text-2xl font-bold">{stats.uniqueWallets}</div>
+              <div className="text-sm text-gray-500">Users</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{stats.totalAccountsClosed}</div>
+              <div className="text-sm text-gray-500">Accounts Closed</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-green-500">{stats.feeBalance.toFixed(2)}</div>
+              <div className="text-sm text-gray-500">SOL Collected</div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="border border-gray-800 rounded-xl p-6">
           {!connected ? (
-            <div className="text-center py-8 sm:py-12">
-              <p className="text-neutral-400 mb-6 text-sm sm:text-base">
-                Connect your wallet to see reclaimable rent
-              </p>
+            <div className="text-center py-8">
+              <p className="text-gray-400 mb-6">Connect your wallet to see reclaimable rent</p>
               <button
                 onClick={connect}
                 disabled={connecting}
-                className="btn-primary px-6 sm:px-8 py-3 text-sm sm:text-base"
+                className="bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-200 disabled:opacity-50"
               >
                 {connecting ? "Connecting..." : "Connect Wallet"}
               </button>
             </div>
           ) : loading ? (
-            <div className="text-center py-12 sm:py-16">
-              <div className="text-3xl mb-3">🔍</div>
-              <p className="text-neutral-500 text-sm">Scanning accounts...</p>
+            <div className="text-center py-12">
+              <p className="text-gray-500">Scanning accounts...</p>
             </div>
           ) : (
             <>
-              {/* Wallet */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-neutral-800">
-                <code className="text-base sm:text-lg text-neutral-300 font-medium">
+              {/* Wallet Info */}
+              <div className="flex items-center justify-between mb-6">
+                <code className="text-lg">
                   {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
                 </code>
                 <button
                   onClick={disconnect}
-                  className="text-sm px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white rounded-lg transition-colors"
+                  className="text-gray-400 hover:text-white px-4 py-2 border border-gray-700 rounded-lg"
                 >
                   Disconnect
                 </button>
               </div>
 
-              {/* Toggle */}
-              <div className="toggle-group mb-4">
+              {/* Filter Tabs */}
+              <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setFilter("empty")}
-                  className={`toggle-btn ${filter === "empty" ? "active" : ""}`}
+                  className={`flex-1 py-2 rounded-lg font-medium ${
+                    filter === "empty" ? "bg-white text-black" : "bg-gray-900 text-gray-400"
+                  }`}
                 >
-                  Claimable ({accounts.filter((a) => a.canClose).length})
+                  Claimable ({closeableCount})
                 </button>
                 <button
                   onClick={() => setFilter("all")}
-                  className={`toggle-btn ${filter === "all" ? "active" : ""}`}
+                  className={`flex-1 py-2 rounded-lg font-medium ${
+                    filter === "all" ? "bg-white text-black" : "bg-gray-900 text-gray-400"
+                  }`}
                 >
                   All ({accounts.length})
                 </button>
@@ -254,11 +268,9 @@ export default function Home() {
 
               {/* Account List */}
               {filteredAccounts.length === 0 ? (
-                <div className="text-center py-10 sm:py-12">
-                  <p className="text-neutral-500 text-sm">No accounts found</p>
-                </div>
+                <p className="text-center text-gray-500 py-8">No accounts found</p>
               ) : (
-                <div className="account-list flex flex-col gap-2 max-h-[240px] sm:max-h-[300px] overflow-y-auto mb-4">
+                <div className="space-y-2 max-h-64 overflow-y-auto mb-6">
                   {filteredAccounts.map((account) => {
                     const key = account.pubkey.toBase58();
                     const selected = selectedIds.has(key);
@@ -268,22 +280,33 @@ export default function Home() {
                       <div
                         key={key}
                         onClick={() => account.canClose && toggleSelect(key)}
-                        className={`account-item ${!account.canClose ? "disabled" : ""} ${selected ? "selected" : ""}`}
+                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${
+                          !account.canClose
+                            ? "opacity-40 cursor-not-allowed bg-gray-900"
+                            : selected
+                            ? "bg-green-900/30 border border-green-500"
+                            : "bg-gray-900 hover:bg-gray-800"
+                        }`}
                       >
-                        <div
-                          className={`checkbox ${selected ? "checked" : ""}`}
-                          style={{ visibility: account.canClose ? "visible" : "hidden" }}
-                        >
-                          {selected && (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3">
-                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                        <div className="flex items-center gap-3">
+                          {account.canClose && (
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                selected ? "bg-green-500 border-green-500" : "border-gray-600"
+                              }`}
+                            >
+                              {selected && (
+                                <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
                           )}
+                          <code className="text-sm text-gray-300">
+                            {key.slice(0, 6)}...{key.slice(-4)}
+                          </code>
                         </div>
-                        <code className="flex-1 text-xs text-neutral-300 truncate">
-                          {key.slice(0, 6)}...{key.slice(-4)}
-                        </code>
-                        <div className="amount-badge">{rent}</div>
+                        <span className="text-green-500 font-mono font-semibold">{rent}</span>
                       </div>
                     );
                   })}
@@ -291,62 +314,44 @@ export default function Home() {
               )}
 
               {/* Quick Actions */}
-              {accounts.filter((a) => a.canClose).length > 0 && (
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={selectAll}
-                    className="text-sm text-neutral-500 hover:text-white"
-                  >
+              {closeableCount > 0 && (
+                <div className="flex items-center justify-between mb-6">
+                  <button onClick={selectAll} className="text-gray-400 hover:text-white text-sm">
                     Select all (max {MAX_ACCOUNTS_PER_TX})
                   </button>
                   <button
                     onClick={quickClose20}
-                    disabled={closing || accounts.filter((a) => a.canClose).length === 0}
-                    className="text-sm px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white font-medium rounded-lg transition-colors"
+                    disabled={closing || closeableCount === 0}
+                    className="bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg font-semibold"
                   >
-                    Quick Close {Math.min(20, accounts.filter((a) => a.canClose).length)}
+                    Quick Close {Math.min(20, closeableCount)}
                   </button>
                 </div>
               )}
 
               {/* Summary */}
               {selectedIds.size > 0 && (
-                <div className="summary-card mb-4">
+                <div className="bg-gray-900 rounded-lg p-4 mb-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-sm text-neutral-300">
-                        {selectedIds.size} account{selectedIds.size > 1 ? "s" : ""}
-                      </div>
-                      <div className="text-xs text-neutral-500 mt-1">
-                        {FEE_PERCENT}% fee: {fee.toFixed(4)} SOL
-                      </div>
+                      <div className="font-medium">{selectedIds.size} account{selectedIds.size > 1 ? "s" : ""}</div>
+                      <div className="text-sm text-gray-500">{FEE_PERCENT}% fee: {fee.toFixed(4)} SOL</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-green-500">
-                        +{netRent.toFixed(4)}
-                      </div>
-                      <div className="text-xs text-neutral-500">SOL</div>
+                      <div className="text-3xl font-bold text-green-500">+{netRent.toFixed(4)}</div>
+                      <div className="text-sm text-gray-500">SOL</div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Action Button */}
+              {/* Claim Button */}
               <button
                 onClick={handleClose}
                 disabled={selectedIds.size === 0 || closing}
-                className="btn-primary w-full py-3 text-sm sm:text-base"
+                className="w-full bg-white text-black py-4 rounded-lg font-bold text-lg hover:bg-gray-200 disabled:bg-gray-800 disabled:text-gray-500"
               >
-                {closing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                    Processing...
-                  </span>
-                ) : selectedIds.size > 0 ? (
-                  `Claim ${netRent.toFixed(4)} SOL`
-                ) : (
-                  "Select accounts"
-                )}
+                {closing ? "Processing..." : selectedIds.size > 0 ? `Claim ${netRent.toFixed(4)} SOL` : "Select accounts"}
               </button>
             </>
           )}
@@ -354,65 +359,33 @@ export default function Home() {
 
         {/* Success */}
         {txResult && (
-          <div className="success-card mt-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">✅</span>
-              <div>
-                <div className="text-green-500 font-medium text-sm">
-                  +{txResult.amount.toFixed(4)} SOL claimed
-                </div>
-                <a
-                  href={`https://checkreceipt.xyz/${txResult.signature}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="fun-link text-xs"
-                >
-                  View transaction →
-                </a>
-              </div>
-            </div>
+          <div className="mt-4 p-4 bg-green-900/30 border border-green-500 rounded-lg">
+            <div className="text-green-500 font-semibold">+{txResult.amount.toFixed(4)} SOL claimed</div>
+            <a
+              href={`https://solscan.io/tx/${txResult.signature}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-green-400 text-sm hover:underline"
+            >
+              View transaction
+            </a>
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="error-card mt-4">
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-3 gap-3 mt-6">
-            <div className="bg-neutral-900 rounded-lg p-3 text-center">
-              <div className="text-xl font-bold text-white">{stats.uniqueWallets}</div>
-              <div className="text-xs text-neutral-500">Users</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg p-3 text-center">
-              <div className="text-xl font-bold text-white">{stats.totalAccountsClosed}</div>
-              <div className="text-xs text-neutral-500">Closed</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg p-3 text-center">
-              <div className="text-xl font-bold text-green-500">{stats.feeBalance.toFixed(2)}</div>
-              <div className="text-xs text-neutral-500">SOL Fees</div>
-            </div>
+          <div className="mt-4 p-4 bg-red-900/30 border border-red-500 rounded-lg">
+            <p className="text-red-400">{error}</p>
           </div>
         )}
 
         {/* Footer */}
-        <p className="text-center text-neutral-600 text-sm mt-6">
-          Gas-free • {FEE_PERCENT}% service fee
-        </p>
-        <p className="text-center mt-2">
-          <a
-            href="https://metasal.xyz"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-neutral-500 hover:text-white text-sm transition-colors"
-          >
+        <div className="text-center mt-8 text-gray-600 text-sm">
+          <p>Gas-free transactions • {FEE_PERCENT}% service fee</p>
+          <a href="https://metasal.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-white">
             metasal.xyz
           </a>
-        </p>
+        </div>
       </div>
     </div>
   );
