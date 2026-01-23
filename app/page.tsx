@@ -67,6 +67,64 @@ export default function Home() {
     setSelectedIds(new Set(closeable.map((a) => a.pubkey.toBase58())));
   };
 
+  const quickClose20 = async () => {
+    if (!publicKey || !signTransaction) return;
+    const closeable = accounts.filter((a) => a.canClose).slice(0, 20);
+    if (closeable.length === 0) return;
+
+    setClosing(true);
+    setError(null);
+    setTxResult(null);
+
+    try {
+      const feePayerRes = await fetch("/api/sponsor");
+      const { feePayer } = await feePayerRes.json();
+      const feePayerPubkey = new PublicKey(feePayer);
+
+      const { transaction, estimatedRent, fee: txFee, netRent: txNetRent } = buildCloseAccountsTransaction(
+        closeable, publicKey, feePayerPubkey
+      );
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.lastValidBlockHeight = lastValidBlockHeight;
+
+      const signedTx = await signTransaction(transaction);
+      const serialized = Buffer.from(signedTx.serialize({ requireAllSignatures: false })).toString("base64");
+
+      const sponsorRes = await fetch("/api/sponsor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transaction: serialized }),
+      });
+
+      if (!sponsorRes.ok) {
+        const err = await sponsorRes.json();
+        throw new Error(err.error || "Transaction failed");
+      }
+
+      const { signature } = await sponsorRes.json();
+      setTxResult({ signature, count: closeable.length, amount: txNetRent });
+      setSelectedIds(new Set());
+
+      const newAccounts = await getTokenAccounts(connection, publicKey);
+      setAccounts(newAccounts);
+
+      fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "close", wallet: publicKey.toBase58(), txSignature: signature,
+          accountsCount: closeable.length, rentAmount: estimatedRent, feePaid: txFee,
+        }),
+      }).catch(() => {});
+    } catch (e: any) {
+      setError(e.message || "Something went wrong!");
+    } finally {
+      setClosing(false);
+    }
+  };
+
   const handleClose = async () => {
     if (!publicKey || !signTransaction || selectedAccounts.length === 0) return;
     setClosing(true);
@@ -224,14 +282,23 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Select All */}
-              {filteredAccounts.filter((a) => a.canClose).length > 1 && (
-                <button
-                  onClick={selectAll}
-                  className="text-xs text-neutral-500 hover:text-white mb-4"
-                >
-                  Select all (max {MAX_ACCOUNTS_PER_TX})
-                </button>
+              {/* Quick Actions */}
+              {accounts.filter((a) => a.canClose).length > 0 && (
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={selectAll}
+                    className="text-sm text-neutral-500 hover:text-white"
+                  >
+                    Select all (max {MAX_ACCOUNTS_PER_TX})
+                  </button>
+                  <button
+                    onClick={quickClose20}
+                    disabled={closing || accounts.filter((a) => a.canClose).length === 0}
+                    className="text-sm px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white font-medium rounded-lg transition-colors"
+                  >
+                    Quick Close {Math.min(20, accounts.filter((a) => a.canClose).length)}
+                  </button>
+                </div>
               )}
 
               {/* Summary */}
