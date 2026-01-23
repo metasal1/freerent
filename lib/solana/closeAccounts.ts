@@ -35,10 +35,16 @@ export function buildCloseAccountsTransaction(
       continue;
     }
 
+    // Verify account owner matches the transaction owner (connected wallet)
+    if (!account.owner.equals(owner)) {
+      console.warn(`Skipping account ${account.pubkey.toBase58()} - owner mismatch`);
+      continue;
+    }
+
     const closeIx = createCloseAccountInstruction(
       account.pubkey,
-      account.owner, // destination for rent (account's verified owner)
-      account.owner, // authority (account's verified owner)
+      owner, // destination for rent (connected wallet)
+      owner, // authority (connected wallet - will sign)
       [],
       account.programId
     );
