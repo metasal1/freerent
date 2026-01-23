@@ -256,7 +256,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="text-cyan-300 text-xs hover:text-white"
               >
-                View tx
+                Check Receipt
               </a>
               <span className="text-gray-600">•</span>
               <a
