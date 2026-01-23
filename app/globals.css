@@ -2,59 +2,56 @@
 
 * {
   box-sizing: border-box;
-}
-
-html, body {
-  min-height: 100vh;
-  min-height: 100dvh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
   margin: 0;
   padding: 0;
 }
 
+html, body {
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
 body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  color: #1a1a2e;
+  background: #0a0a0a;
+  color: #fafafa;
 }
 
 /* Card */
 .card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  background: #141414;
+  border: 1px solid #262626;
+  border-radius: 16px;
 }
 
 .text-muted {
-  color: #6b7280;
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ff9a56 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #737373;
 }
 
 /* Primary button */
 .btn-primary {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #22c55e;
   border: none;
-  border-radius: 12px;
-  color: white;
-  font-weight: 700;
+  border-radius: 10px;
+  color: #000;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover {
+  background: #16a34a;
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  background: #262626;
+  color: #525252;
   cursor: not-allowed;
 }
 
 /* Toggle */
 .toggle-group {
-  background: #f3f4f6;
+  background: #1a1a1a;
   border-radius: 10px;
   padding: 4px;
   display: flex;
@@ -63,20 +60,20 @@ body {
 
 .toggle-btn {
   flex: 1;
-  padding: 10px 12px;
+  padding: 10px 16px;
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #6b7280;
-  font-weight: 600;
-  font-size: 13px;
+  color: #737373;
+  font-weight: 500;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.15s;
 }
 
 .toggle-btn.active {
-  background: white;
-  color: #1a1a2e;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #262626;
+  color: #fafafa;
 }
 
 /* Account item */
@@ -84,81 +81,88 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 2px solid transparent;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s;
 }
 
 .account-item:hover {
-  background: #f3f4f6;
+  background: #222;
 }
 
 .account-item.selected {
-  background: #fef2f2;
-  border-color: #f87171;
+  background: rgba(34, 197, 94, 0.1);
+  outline: 1px solid #22c55e;
 }
 
 .account-item.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.account-item.disabled:hover {
+  background: #1a1a1a;
 }
 
 /* Checkbox */
 .checkbox {
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  border-radius: 6px;
-  border: 2px solid #d1d5db;
-  background: white;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 4px;
+  border: 2px solid #404040;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
 }
 
 .checkbox.checked {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  border-color: transparent;
+  background: #22c55e;
+  border-color: #22c55e;
 }
 
 /* Amount badge */
 .amount-badge {
-  background: #fef3c7;
-  color: #b45309;
+  background: #262626;
+  color: #22c55e;
   padding: 6px 10px;
-  border-radius: 8px;
-  font-weight: 700;
+  border-radius: 6px;
+  font-weight: 600;
   font-size: 13px;
-  white-space: nowrap;
+  font-family: monospace;
 }
 
 /* Summary card */
 .summary-card {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  background: #1a1a1a;
+  border: 1px solid #262626;
   border-radius: 12px;
   padding: 16px;
 }
 
 /* Success card */
 .success-card {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid #22c55e;
   border-radius: 12px;
   padding: 16px;
 }
 
 /* Error card */
 .error-card {
-  background: #fef3c7;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
   border-radius: 12px;
   padding: 16px;
 }
 
 .fun-link {
-  color: #059669;
-  font-weight: 600;
+  color: #22c55e;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -169,7 +173,7 @@ body {
 /* Scrollbar */
 .account-list {
   scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
+  scrollbar-color: #404040 transparent;
 }
 
 .account-list::-webkit-scrollbar {
@@ -181,7 +185,7 @@ body {
 }
 
 .account-list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #404040;
   border-radius: 3px;
 }
 

@@ -120,83 +120,60 @@ export default function Home() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", padding: "24px 16px" }}>
-      <div style={{ maxWidth: 400, margin: "0 auto" }}>
-
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-md">
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: "white", margin: 0 }}>
-            FreeRent 💸
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+            💸 FreeRent
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.7)", marginTop: 8, fontSize: 14 }}>
-            Get your money back!
+          <p className="text-neutral-500 text-sm sm:text-base">
+            Reclaim SOL from unused token accounts
           </p>
         </div>
 
         {/* Main Card */}
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card p-5 sm:p-6">
           {!connected ? (
-            <div style={{ textAlign: "center", padding: "32px 0" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
-                Ready to claim free money?
-              </h2>
-              <p className="text-muted" style={{ fontSize: 14, marginBottom: 24 }}>
-                Connect your wallet to find reclaimable rent
+            <div className="text-center py-8 sm:py-12">
+              <p className="text-neutral-400 mb-6 text-sm sm:text-base">
+                Connect your wallet to see reclaimable rent
               </p>
               <button
                 onClick={connect}
                 disabled={connecting}
-                className="btn-primary"
-                style={{ padding: "14px 32px", fontSize: 16 }}
+                className="btn-primary px-6 sm:px-8 py-3 text-sm sm:text-base"
               >
-                {connecting ? "Connecting..." : "Let's Go! 🚀"}
+                {connecting ? "Connecting..." : "Connect Wallet"}
               </button>
             </div>
           ) : loading ? (
-            <div style={{ textAlign: "center", padding: "48px 0" }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-              <p className="text-muted">Finding your hidden treasure...</p>
+            <div className="text-center py-12 sm:py-16">
+              <div className="text-3xl mb-3">🔍</div>
+              <p className="text-neutral-500 text-sm">Scanning accounts...</p>
             </div>
           ) : (
             <>
-              {/* Wallet Header */}
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                paddingBottom: 16,
-                marginBottom: 16,
-                borderBottom: "1px solid #e5e7eb"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 20 }}>👛</span>
-                  <span style={{ fontFamily: "monospace", fontSize: 13, color: "#6b7280" }}>
-                    {publicKey?.toBase58().slice(0, 6)}...{publicKey?.toBase58().slice(-4)}
-                  </span>
-                </div>
+              {/* Wallet */}
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-neutral-800">
+                <code className="text-xs sm:text-sm text-neutral-400">
+                  {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
+                </code>
                 <button
                   onClick={disconnect}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#6b7280",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: "pointer"
-                  }}
+                  className="text-xs text-neutral-500 hover:text-white"
                 >
                   Disconnect
                 </button>
               </div>
 
               {/* Toggle */}
-              <div className="toggle-group" style={{ marginBottom: 16 }}>
+              <div className="toggle-group mb-4">
                 <button
                   onClick={() => setFilter("empty")}
                   className={`toggle-btn ${filter === "empty" ? "active" : ""}`}
                 >
-                  Ready ({accounts.filter((a) => a.canClose).length})
+                  Claimable ({accounts.filter((a) => a.canClose).length})
                 </button>
                 <button
                   onClick={() => setFilter("all")}
@@ -208,22 +185,11 @@ export default function Home() {
 
               {/* Account List */}
               {filteredAccounts.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <div style={{ fontSize: 40, marginBottom: 8 }}>🎊</div>
-                  <p className="text-muted">No accounts to show!</p>
+                <div className="text-center py-10 sm:py-12">
+                  <p className="text-neutral-500 text-sm">No accounts found</p>
                 </div>
               ) : (
-                <div
-                  className="account-list"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    maxHeight: 280,
-                    overflowY: "auto",
-                    marginBottom: 16
-                  }}
-                >
+                <div className="account-list flex flex-col gap-2 max-h-[240px] sm:max-h-[300px] overflow-y-auto mb-4">
                   {filteredAccounts.map((account) => {
                     const key = account.pubkey.toBase58();
                     const selected = selectedIds.has(key);
@@ -240,21 +206,14 @@ export default function Home() {
                           style={{ visibility: account.canClose ? "visible" : "hidden" }}
                         >
                           {selected && (
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3">
                               <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           )}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontFamily: "monospace", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {key.slice(0, 8)}...{key.slice(-4)}
-                          </div>
-                          {account.closeBlockedReason && (
-                            <div style={{ fontSize: 11, color: "#f97316", marginTop: 2 }}>
-                              {account.closeBlockedReason}
-                            </div>
-                          )}
-                        </div>
+                        <code className="flex-1 text-xs text-neutral-300 truncate">
+                          {key.slice(0, 6)}...{key.slice(-4)}
+                        </code>
                         <div className="amount-badge">{rent}</div>
                       </div>
                     );
@@ -266,38 +225,29 @@ export default function Home() {
               {filteredAccounts.filter((a) => a.canClose).length > 1 && (
                 <button
                   onClick={selectAll}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ec4899",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    marginBottom: 16,
-                    padding: 0
-                  }}
+                  className="text-xs text-neutral-500 hover:text-white mb-4"
                 >
-                  ✨ Select all (max {MAX_ACCOUNTS_PER_TX})
+                  Select all (max {MAX_ACCOUNTS_PER_TX})
                 </button>
               )}
 
               {/* Summary */}
               {selectedIds.size > 0 && (
-                <div className="summary-card" style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="summary-card mb-4">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>
-                        {selectedIds.size} selected
+                      <div className="text-sm text-neutral-300">
+                        {selectedIds.size} account{selectedIds.size > 1 ? "s" : ""}
                       </div>
-                      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                        {fee.toFixed(4)} fee ({FEE_PERCENT}%)
+                      <div className="text-xs text-neutral-500 mt-1">
+                        {FEE_PERCENT}% fee: {fee.toFixed(4)} SOL
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div className="gradient-text" style={{ fontSize: 24, fontWeight: 900 }}>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-green-500">
                         +{netRent.toFixed(4)}
                       </div>
-                      <div style={{ fontSize: 12, color: "#374151" }}>SOL</div>
+                      <div className="text-xs text-neutral-500">SOL</div>
                     </div>
                   </div>
                 </div>
@@ -307,72 +257,56 @@ export default function Home() {
               <button
                 onClick={handleClose}
                 disabled={selectedIds.size === 0 || closing}
-                className="btn-primary"
-                style={{ width: "100%", padding: "14px 0", fontSize: 16 }}
+                className="btn-primary w-full py-3 text-sm sm:text-base"
               >
                 {closing ? (
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    <span
-                      className="animate-spin"
-                      style={{
-                        width: 16,
-                        height: 16,
-                        border: "2px solid white",
-                        borderTopColor: "transparent",
-                        borderRadius: "50%",
-                        display: "inline-block"
-                      }}
-                    />
-                    Working...
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    Processing...
                   </span>
                 ) : selectedIds.size > 0 ? (
-                  `Claim ${selectedIds.size} account${selectedIds.size > 1 ? "s" : ""} 🎁`
+                  `Claim ${netRent.toFixed(4)} SOL`
                 ) : (
-                  "Select accounts to claim"
+                  "Select accounts"
                 )}
               </button>
             </>
           )}
         </div>
 
-        {/* Success Message */}
+        {/* Success */}
         {txResult && (
-          <div className="success-card" style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 32 }}>🎉</div>
+          <div className="success-card mt-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
               <div>
-                <div style={{ fontWeight: 700, color: "#065f46" }}>Woohoo!</div>
-                <div style={{ fontSize: 13, color: "#047857" }}>
-                  +{txResult.amount.toFixed(4)} SOL from {txResult.count} account{txResult.count > 1 ? "s" : ""}
+                <div className="text-green-500 font-medium text-sm">
+                  +{txResult.amount.toFixed(4)} SOL claimed
                 </div>
+                <a
+                  href={`https://checkreceipt.xyz/${txResult.signature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="fun-link text-xs"
+                >
+                  View transaction →
+                </a>
               </div>
             </div>
-            <a
-              href={`https://checkreceipt.xyz/${txResult.signature}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fun-link"
-              style={{ display: "block", marginTop: 12, textAlign: "center", fontSize: 14 }}
-            >
-              View receipt →
-            </a>
           </div>
         )}
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="error-card" style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 24 }}>😅</div>
-              <div style={{ color: "#92400e", fontWeight: 500, fontSize: 14 }}>{error}</div>
-            </div>
+          <div className="error-card mt-4">
+            <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
         {/* Footer */}
-        <div style={{ textAlign: "center", color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 24 }}>
-          Free gas • {FEE_PERCENT}% service fee
-        </div>
+        <p className="text-center text-neutral-600 text-xs mt-6">
+          Gas-free • {FEE_PERCENT}% service fee
+        </p>
       </div>
     </div>
   );
