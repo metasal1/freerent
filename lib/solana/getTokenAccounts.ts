@@ -4,6 +4,7 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, RENT_PER_ACCOUNT } from "./con
 export interface TokenAccountInfo {
   pubkey: PublicKey;
   mint: PublicKey;
+  owner: PublicKey;
   amount: bigint;
   decimals: number;
   rentLamports: number;
@@ -30,16 +31,22 @@ export async function getTokenAccounts(
     const parsed = account.data.parsed.info;
     const amount = BigInt(parsed.tokenAmount.amount);
     const isEmpty = amount === 0n;
+    const accountOwner = new PublicKey(parsed.owner);
+
+    // Verify the owner matches
+    const ownerMatches = accountOwner.equals(owner);
 
     accounts.push({
       pubkey,
       mint: new PublicKey(parsed.mint),
+      owner: accountOwner,
       amount,
       decimals: parsed.tokenAmount.decimals,
       rentLamports: account.lamports,
       isEmpty,
       programId: TOKEN_PROGRAM_ID,
-      canClose: isEmpty,
+      canClose: isEmpty && ownerMatches,
+      closeBlockedReason: !ownerMatches ? "Owner mismatch" : undefined,
     });
   }
 
@@ -48,27 +55,59 @@ export async function getTokenAccounts(
     const parsed = account.data.parsed.info;
     const amount = BigInt(parsed.tokenAmount.amount);
     const isEmpty = amount === 0n;
+    const accountOwner = new PublicKey(parsed.owner);
+
+    // Verify the owner matches
+    const ownerMatches = accountOwner.equals(owner);
 
     // Check for extensions that block closing
-    let canClose = isEmpty;
+    let canClose = isEmpty && ownerMatches;
     let closeBlockedReason: string | undefined;
 
-    // Check for confidential transfer extension
-    const extensions = parsed.extensions || [];
-    const hasConfidentialTransfer = extensions.some(
-      (ext: { extension: string }) =>
-        ext.extension === "confidentialTransferAccount" ||
-        ext.extension === "confidentialTransferFeeAmount"
-    );
+    if (!ownerMatches) {
+      closeBlockedReason = "Owner mismatch";
+    } else {
+      const extensions = parsed.extensions || [];
 
-    if (hasConfidentialTransfer) {
-      canClose = false;
-      closeBlockedReason = "Has confidential transfer (use Token-2022 tools)";
+      // Check for confidential transfer extension
+      const hasConfidentialTransfer = extensions.some(
+        (ext: { extension: string }) =>
+          ext.extension === "confidentialTransferAccount" ||
+          ext.extension === "confidentialTransferFeeAmount"
+      );
+
+      // Check for close authority set to different address
+      const closeAuthorityExt = extensions.find(
+        (ext: { extension: string }) => ext.extension === "permanentDelegate"
+      );
+
+      // Check if account is frozen
+      const isFrozen = parsed.state === "frozen";
+
+      // Check for non-transferable
+      const isNonTransferable = extensions.some(
+        (ext: { extension: string }) => ext.extension === "nonTransferable"
+      );
+
+      if (hasConfidentialTransfer) {
+        canClose = false;
+        closeBlockedReason = "Has confidential transfer";
+      } else if (isFrozen) {
+        canClose = false;
+        closeBlockedReason = "Account is frozen";
+      } else if (closeAuthorityExt) {
+        canClose = false;
+        closeBlockedReason = "Has permanent delegate";
+      } else if (isNonTransferable && !isEmpty) {
+        canClose = false;
+        closeBlockedReason = "Non-transferable token";
+      }
     }
 
     accounts.push({
       pubkey,
       mint: new PublicKey(parsed.mint),
+      owner: accountOwner,
       amount,
       decimals: parsed.tokenAmount.decimals,
       rentLamports: account.lamports,

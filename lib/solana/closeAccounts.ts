@@ -30,15 +30,15 @@ export function buildCloseAccountsTransaction(
 
   // Add close instructions for each account
   for (const account of accountsToClose) {
-    if (!account.isEmpty) {
-      // Skip non-empty accounts (they need to be burned first)
+    if (!account.canClose) {
+      // Skip accounts that can't be closed
       continue;
     }
 
     const closeIx = createCloseAccountInstruction(
       account.pubkey,
-      owner, // destination for rent
-      owner, // authority
+      account.owner, // destination for rent (account's verified owner)
+      account.owner, // authority (account's verified owner)
       [],
       account.programId
     );
