@@ -43,12 +43,16 @@ export default function Home() {
   const netRent = totalRent - fee;
   const closeableCount = accounts.filter((a) => a.canClose).length;
 
-  useEffect(() => {
+  const refreshStats = () => {
     fetch("/api/stats")
       .then((res) => res.json())
       .then(setStats)
       .catch(() => {});
-  }, [txResult]);
+  };
+
+  useEffect(() => {
+    refreshStats();
+  }, []);
 
   useEffect(() => {
     if (!publicKey || !connected) {
@@ -136,7 +140,7 @@ export default function Home() {
       const newAccounts = await getTokenAccounts(connection, publicKey);
       setAccounts(newAccounts);
 
-      fetch("/api/events", {
+      await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -144,6 +148,7 @@ export default function Home() {
           accountsCount: closeable.length, rentAmount: estimatedRent, feePaid: txFee,
         }),
       }).catch(() => {});
+      refreshStats();
     } catch (e: any) {
       setError(e.message || "Something went wrong!");
       track("quick_close_error", { error: e.message || "Unknown error" });
@@ -198,7 +203,7 @@ export default function Home() {
       const newAccounts = await getTokenAccounts(connection, publicKey);
       setAccounts(newAccounts);
 
-      fetch("/api/events", {
+      await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -206,6 +211,7 @@ export default function Home() {
           accountsCount: selectedAccounts.length, rentAmount: estimatedRent, feePaid: txFee,
         }),
       }).catch(() => {});
+      refreshStats();
     } catch (e: any) {
       setError(e.message || "Something went wrong!");
       track("close_error", { error: e.message || "Unknown error" });
@@ -270,6 +276,17 @@ export default function Home() {
                   Disconnect
                 </button>
               </div>
+
+              {/* Quick Close */}
+              {closeableCount > 0 && (
+                <button
+                  onClick={quickClose20}
+                  disabled={closing || closeableCount === 0}
+                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white py-3 rounded-lg font-semibold mb-6"
+                >
+                  Quick Close {Math.min(20, closeableCount)} Accounts
+                </button>
+              )}
 
               {/* Filter Tabs */}
               <div className="flex gap-2 mb-6">
@@ -338,18 +355,11 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Quick Actions */}
+              {/* Select All */}
               {closeableCount > 0 && (
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6">
                   <button onClick={selectAll} className="text-gray-400 hover:text-white text-sm">
                     Select all (max {MAX_ACCOUNTS_PER_TX})
-                  </button>
-                  <button
-                    onClick={quickClose20}
-                    disabled={closing || closeableCount === 0}
-                    className="bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg font-semibold"
-                  >
-                    Quick Close {Math.min(20, closeableCount)}
                   </button>
                 </div>
               )}
