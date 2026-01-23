@@ -1,14 +1,26 @@
-import { createClient } from "@libsql/client";
+import { createClient, Client } from "@libsql/client";
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL || "",
-  authToken: process.env.TURSO_AUTH_TOKEN || "",
-});
+let client: Client | null = null;
+
+// Only create client if URL is provided
+if (process.env.TURSO_DATABASE_URL) {
+  client = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN || "",
+  });
+}
 
 export { client as turso };
 
+// Check if database is available
+export function isDatabaseAvailable(): boolean {
+  return client !== null;
+}
+
 // Initialize database schema
 export async function initDatabase() {
+  if (!client) return;
+
   await client.execute(`
     CREATE TABLE IF NOT EXISTS stats (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +55,8 @@ export async function initDatabase() {
 
 // Log a wallet connection
 export async function logConnect(walletAddress: string) {
+  if (!client) return;
+
   await client.execute({
     sql: `INSERT INTO events (event_type, wallet_address) VALUES ('connect', ?)`,
     args: [walletAddress],
@@ -57,6 +71,8 @@ export async function logClose(
   rentAmount: number,
   feePaid: number
 ) {
+  if (!client) return;
+
   // Insert event
   await client.execute({
     sql: `INSERT INTO events (event_type, wallet_address, tx_signature, accounts_count, rent_amount)
@@ -90,6 +106,15 @@ export async function logClose(
 
 // Get global statistics
 export async function getGlobalStats() {
+  if (!client) {
+    return {
+      uniqueWallets: 0,
+      totalAccountsClosed: 0,
+      totalRentRecovered: 0,
+      totalFees: 0,
+    };
+  }
+
   const result = await client.execute(`
     SELECT
       COUNT(DISTINCT wallet_address) as unique_wallets,
@@ -110,6 +135,10 @@ export async function getGlobalStats() {
 
 // Get wallet-specific stats
 export async function getWalletStats(walletAddress: string) {
+  if (!client) {
+    return { accountsClosed: 0, rentRecovered: 0, feePaid: 0 };
+  }
+
   const result = await client.execute({
     sql: `SELECT accounts_closed, rent_recovered, fee_paid FROM stats WHERE wallet_address = ?`,
     args: [walletAddress],
