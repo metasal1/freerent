@@ -517,6 +517,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-800/50 py-6 text-center">
         <p className="text-gray-600 text-xs mb-1">Gas-free transactions • {FEE_PERCENT}% service fee</p>
+        <p className="text-gray-600 text-xs mb-2">
+          Beta: Some accounts cannot be closed. <a href="https://t.me/metasal" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:text-cyan-400">Report issues</a>
+        </p>
         <a href="https://metasal.xyz" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-cyan-400 text-xs transition-colors">
           metasal.xyz
         </a>
