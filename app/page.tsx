@@ -361,7 +361,7 @@ export default function Home() {
                 <button
                   onClick={connect}
                   disabled={connecting}
-                  className="brand-gradient text-black px-8 py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-100 disabled:opacity-50 transition-colors"
                 >
                   {connecting ? "Connecting..." : "Select Wallet"}
                 </button>
