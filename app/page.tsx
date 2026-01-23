@@ -23,6 +23,7 @@ export default function Home() {
   const [filter, setFilter] = useState<"empty" | "all">("empty");
   const [txResult, setTxResult] = useState<{ signature: string; count: number; amount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ uniqueWallets: number; totalAccountsClosed: number; feeBalance: number } | null>(null);
 
   const filteredAccounts = useMemo(() => {
     if (filter === "empty") return accounts.filter((a) => a.canClose);
@@ -39,6 +40,13 @@ export default function Home() {
 
   const fee = totalRent * (FEE_PERCENT / 100);
   const netRent = totalRent - fee;
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then(setStats)
+      .catch(() => {});
+  }, [txResult]);
 
   useEffect(() => {
     if (!publicKey || !connected) {
@@ -370,6 +378,24 @@ export default function Home() {
         {error && (
           <div className="error-card mt-4">
             <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Stats */}
+        {stats && (
+          <div className="grid grid-cols-3 gap-3 mt-6">
+            <div className="bg-neutral-900 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-white">{stats.uniqueWallets}</div>
+              <div className="text-xs text-neutral-500">Users</div>
+            </div>
+            <div className="bg-neutral-900 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-white">{stats.totalAccountsClosed}</div>
+              <div className="text-xs text-neutral-500">Closed</div>
+            </div>
+            <div className="bg-neutral-900 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-green-500">{stats.feeBalance.toFixed(2)}</div>
+              <div className="text-xs text-neutral-500">SOL Fees</div>
+            </div>
           </div>
         )}
 
