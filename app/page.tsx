@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { track } from "@vercel/analytics";
 import { getTokenAccounts, TokenAccountInfo } from "@/lib/solana/getTokenAccounts";
 import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { FEE_PERCENT, MAX_ACCOUNTS_PER_TX } from "@/lib/solana/constants";
@@ -57,8 +58,18 @@ export default function Home() {
     setLoading(true);
     setError(null);
     getTokenAccounts(connection, publicKey)
-      .then(setAccounts)
-      .catch((e) => setError(e.message))
+      .then((accts) => {
+        setAccounts(accts);
+        const closeable = accts.filter((a) => a.canClose).length;
+        track("wallet_connected", {
+          total_accounts: accts.length,
+          closeable_accounts: closeable,
+        });
+      })
+      .catch((e) => {
+        setError(e.message);
+        track("scan_error", { error: e.message });
+      })
       .finally(() => setLoading(false));
   }, [publicKey, connected, connection]);
 
@@ -116,6 +127,12 @@ export default function Home() {
       setTxResult({ signature, count: closeable.length, amount: txNetRent });
       setSelectedIds(new Set());
 
+      track("quick_close_success", {
+        accounts_closed: closeable.length,
+        sol_claimed: txNetRent,
+        fee_paid: txFee,
+      });
+
       const newAccounts = await getTokenAccounts(connection, publicKey);
       setAccounts(newAccounts);
 
@@ -129,6 +146,7 @@ export default function Home() {
       }).catch(() => {});
     } catch (e: any) {
       setError(e.message || "Something went wrong!");
+      track("quick_close_error", { error: e.message || "Unknown error" });
     } finally {
       setClosing(false);
     }
@@ -171,6 +189,12 @@ export default function Home() {
       setTxResult({ signature, count: selectedAccounts.length, amount: txNetRent });
       setSelectedIds(new Set());
 
+      track("accounts_closed", {
+        accounts_closed: selectedAccounts.length,
+        sol_claimed: txNetRent,
+        fee_paid: txFee,
+      });
+
       const newAccounts = await getTokenAccounts(connection, publicKey);
       setAccounts(newAccounts);
 
@@ -184,6 +208,7 @@ export default function Home() {
       }).catch(() => {});
     } catch (e: any) {
       setError(e.message || "Something went wrong!");
+      track("close_error", { error: e.message || "Unknown error" });
     } finally {
       setClosing(false);
     }

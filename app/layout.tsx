@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "FreeRent 💸 - Get Your Money Back",
@@ -38,6 +39,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <ClientProviders>{children}</ClientProviders>
+        <Analytics />
       </body>
     </html>
   );
