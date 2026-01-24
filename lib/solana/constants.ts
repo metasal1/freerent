@@ -30,3 +30,14 @@ export function getMaxBatchSize(): number {
   const maxByComputeUnits = Math.floor(MAX_CU_PER_TX / CU_PER_CLOSE);
   return Math.min(maxByComputeUnits, MAX_ACCOUNTS_PER_TX);
 }
+
+// Jupiter API configuration
+export const JUPITER_API_KEY = process.env.NEXT_PUBLIC_JUPITER_API_KEY || "64a543a0-30cf-440e-a9e4-7463a8523e7f";
+export const JUPITER_API_URL = "https://api.jup.ag/tokens/v2";
+
+// Dust threshold - only tokens worth less than this can be burned
+export const DUST_THRESHOLD_USD = 0.10;
+
+// Burn uses more CU than close (burn + close instructions)
+export const CU_PER_BURN = 15_000;
+export const MAX_ACCOUNTS_PER_BURN_TX = 10; // Conservative limit for burn+close

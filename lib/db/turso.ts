@@ -104,6 +104,47 @@ export async function logClose(
   }
 }
 
+// Log token burning
+export async function logBurn(
+  walletAddress: string,
+  txSignature: string,
+  accountsCount: number,
+  rentAmount: number,
+  feePaid: number
+) {
+  if (!client) return;
+
+  // Insert event
+  await client.execute({
+    sql: `INSERT INTO events (event_type, wallet_address, tx_signature, accounts_count, rent_amount)
+          VALUES ('burn', ?, ?, ?, ?)`,
+    args: [walletAddress, txSignature, accountsCount, rentAmount],
+  });
+
+  // Upsert stats (burn also closes accounts and recovers rent)
+  const existing = await client.execute({
+    sql: `SELECT id FROM stats WHERE wallet_address = ?`,
+    args: [walletAddress],
+  });
+
+  if (existing.rows.length > 0) {
+    await client.execute({
+      sql: `UPDATE stats
+            SET accounts_closed = accounts_closed + ?,
+                rent_recovered = rent_recovered + ?,
+                fee_paid = fee_paid + ?
+            WHERE wallet_address = ?`,
+      args: [accountsCount, rentAmount, feePaid, walletAddress],
+    });
+  } else {
+    await client.execute({
+      sql: `INSERT INTO stats (wallet_address, accounts_closed, rent_recovered, fee_paid)
+            VALUES (?, ?, ?, ?)`,
+      args: [walletAddress, accountsCount, rentAmount, feePaid],
+    });
+  }
+}
+
 // Get global statistics
 export async function getGlobalStats() {
   if (!client) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logConnect, logClose, initDatabase } from "@/lib/db/turso";
+import { logConnect, logClose, logBurn, initDatabase } from "@/lib/db/turso";
 
 // Initialize database on first request
 let initialized = false;
@@ -34,6 +34,16 @@ export async function POST(request: NextRequest) {
           );
         }
         await logClose(wallet, txSignature, accountsCount, rentAmount, feePaid || 0);
+        break;
+
+      case "burn":
+        if (!wallet || !txSignature || accountsCount === undefined || rentAmount === undefined) {
+          return NextResponse.json(
+            { error: "Missing required fields for burn event" },
+            { status: 400 }
+          );
+        }
+        await logBurn(wallet, txSignature, accountsCount, rentAmount, feePaid || 0);
         break;
 
       default:

@@ -12,6 +12,8 @@ export interface TokenAccountInfo {
   programId: PublicKey;
   canClose: boolean; // Whether the account can be safely closed
   closeBlockedReason?: string;
+  canBurn: boolean; // Whether the account can be burned (has balance, not frozen)
+  burnBlockedReason?: string;
 }
 
 export async function getTokenAccounts(
@@ -59,6 +61,18 @@ export async function getTokenAccounts(
       closeBlockedReason = "Account is frozen";
     }
 
+    // Burn validation: can burn if has balance, owner matches, and not frozen
+    let canBurn = !isEmpty && ownerMatches && !isFrozen;
+    let burnBlockedReason: string | undefined;
+
+    if (isEmpty) {
+      burnBlockedReason = "No balance to burn";
+    } else if (!ownerMatches) {
+      burnBlockedReason = "Owner mismatch";
+    } else if (isFrozen) {
+      burnBlockedReason = "Account is frozen";
+    }
+
     accounts.push({
       pubkey,
       mint: new PublicKey(parsed.mint),
@@ -70,6 +84,8 @@ export async function getTokenAccounts(
       programId: TOKEN_PROGRAM_ID,
       canClose,
       closeBlockedReason,
+      canBurn,
+      burnBlockedReason,
     });
   }
 
@@ -85,66 +101,80 @@ export async function getTokenAccounts(
     // Verify the owner matches
     const ownerMatches = accountOwner.equals(owner);
 
-    // Check for extensions that block closing
+    // Parse extensions and check for blockers
+    const extensions = parsed.extensions || [];
+
+    // Check for confidential transfer extension
+    const hasConfidentialTransfer = extensions.some(
+      (ext: { extension: string }) =>
+        ext.extension === "confidentialTransferAccount" ||
+        ext.extension === "confidentialTransferFeeAmount"
+    );
+
+    // Check for permanent delegate
+    const hasPermanentDelegate = extensions.some(
+      (ext: { extension: string }) => ext.extension === "permanentDelegate"
+    );
+
+    // Check for close authority extension
+    const closeAuthorityExt = extensions.find(
+      (ext: { extension: string; state?: { closeAuthority?: string } }) =>
+        ext.extension === "mintCloseAuthority"
+    );
+    const hasCloseAuthority = closeAuthorityExt || (parsed.closeAuthority && parsed.closeAuthority !== parsed.owner);
+
+    // Check if account is frozen
+    const isFrozen = parsed.state === "frozen";
+
+    // Check for non-transferable
+    const isNonTransferable = extensions.some(
+      (ext: { extension: string }) => ext.extension === "nonTransferable"
+    );
+
+    // Check for transfer hook (may cause issues)
+    const hasTransferHook = extensions.some(
+      (ext: { extension: string }) => ext.extension === "transferHook" || ext.extension === "transferHookAccount"
+    );
+
+    // Determine if account can be closed
     let canClose = isEmpty && ownerMatches;
     let closeBlockedReason: string | undefined;
 
     if (!ownerMatches) {
+      canClose = false;
       closeBlockedReason = "Owner mismatch";
-    } else {
-      const extensions = parsed.extensions || [];
+    } else if (hasConfidentialTransfer) {
+      canClose = false;
+      closeBlockedReason = "Has confidential transfer";
+    } else if (isFrozen) {
+      canClose = false;
+      closeBlockedReason = "Account is frozen";
+    } else if (hasPermanentDelegate) {
+      canClose = false;
+      closeBlockedReason = "Has permanent delegate";
+    } else if (hasCloseAuthority) {
+      canClose = false;
+      closeBlockedReason = "Has close authority";
+    } else if (isNonTransferable) {
+      canClose = false;
+      closeBlockedReason = "Non-transferable token";
+    } else if (hasTransferHook) {
+      canClose = false;
+      closeBlockedReason = "Has transfer hook";
+    }
 
-      // Check for confidential transfer extension
-      const hasConfidentialTransfer = extensions.some(
-        (ext: { extension: string }) =>
-          ext.extension === "confidentialTransferAccount" ||
-          ext.extension === "confidentialTransferFeeAmount"
-      );
+    // Burn validation for Token-2022
+    let canBurn = !isEmpty && ownerMatches && !isFrozen && !hasPermanentDelegate;
+    let burnBlockedReason: string | undefined;
 
-      // Check for permanent delegate
-      const hasPermanentDelegate = extensions.some(
-        (ext: { extension: string }) => ext.extension === "permanentDelegate"
-      );
-
-      // Check for close authority extension
-      const closeAuthorityExt = extensions.find(
-        (ext: { extension: string; state?: { closeAuthority?: string } }) =>
-          ext.extension === "mintCloseAuthority"
-      );
-      const hasCloseAuthority = closeAuthorityExt || (parsed.closeAuthority && parsed.closeAuthority !== parsed.owner);
-
-      // Check if account is frozen
-      const isFrozen = parsed.state === "frozen";
-
-      // Check for non-transferable
-      const isNonTransferable = extensions.some(
-        (ext: { extension: string }) => ext.extension === "nonTransferable"
-      );
-
-      // Check for transfer hook (may cause issues)
-      const hasTransferHook = extensions.some(
-        (ext: { extension: string }) => ext.extension === "transferHook" || ext.extension === "transferHookAccount"
-      );
-
-      if (hasConfidentialTransfer) {
-        canClose = false;
-        closeBlockedReason = "Has confidential transfer";
-      } else if (isFrozen) {
-        canClose = false;
-        closeBlockedReason = "Account is frozen";
-      } else if (hasPermanentDelegate) {
-        canClose = false;
-        closeBlockedReason = "Has permanent delegate";
-      } else if (hasCloseAuthority) {
-        canClose = false;
-        closeBlockedReason = "Has close authority";
-      } else if (isNonTransferable) {
-        canClose = false;
-        closeBlockedReason = "Non-transferable token";
-      } else if (hasTransferHook) {
-        canClose = false;
-        closeBlockedReason = "Has transfer hook";
-      }
+    if (isEmpty) {
+      burnBlockedReason = "No balance to burn";
+    } else if (!ownerMatches) {
+      burnBlockedReason = "Owner mismatch";
+    } else if (isFrozen) {
+      burnBlockedReason = "Account is frozen";
+    } else if (hasPermanentDelegate) {
+      burnBlockedReason = "Has permanent delegate";
     }
 
     accounts.push({
@@ -158,6 +188,8 @@ export async function getTokenAccounts(
       programId: TOKEN_2022_PROGRAM_ID,
       canClose,
       closeBlockedReason,
+      canBurn,
+      burnBlockedReason,
     });
   }
 
