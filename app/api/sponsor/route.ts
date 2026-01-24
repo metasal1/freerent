@@ -6,13 +6,14 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAccount, TokenAccountNotFou
 const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.up.railway.app";
 const SOLANA_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 
-// Jito block engine endpoints (multiple for redundancy)
-const JITO_ENDPOINTS = [
-  "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
+// Jito RPC endpoints for sending transactions (not bundles - bundles require tips)
+// These provide better landing rates without needing tip transactions
+const JITO_RPC_ENDPOINTS = [
+  "https://mainnet.block-engine.jito.wtf/api/v1/transactions",
+  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/transactions",
+  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions",
+  "https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
+  "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/transactions",
 ];
 
 // Kora fee payer address (from getConfig)
@@ -256,20 +257,21 @@ function base64ToBase58(base64Tx: string): string {
   return bs58.encode(txBytes);
 }
 
-interface JitoBundleResult {
+interface SendResult {
   success: boolean;
-  bundleId?: string;
+  signature?: string;
   error?: string;
+  method?: "jito" | "kora";
 }
 
 /**
- * Send a transaction as a Jito bundle
- * Tries multiple Jito endpoints for redundancy
+ * Send a transaction via Jito's transaction endpoint
+ * This provides better landing rates without requiring tip transactions
  */
-async function sendJitoBundle(base58Tx: string): Promise<JitoBundleResult> {
+async function sendViaJito(base58Tx: string): Promise<SendResult> {
   const errors: string[] = [];
 
-  for (const endpoint of JITO_ENDPOINTS) {
+  for (const endpoint of JITO_RPC_ENDPOINTS) {
     try {
       console.log(`Trying Jito endpoint: ${endpoint}`);
 
@@ -281,8 +283,15 @@ async function sendJitoBundle(base58Tx: string): Promise<JitoBundleResult> {
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
-          method: "sendBundle",
-          params: [[base58Tx]], // Bundle is an array of transactions
+          method: "sendTransaction",
+          params: [
+            base58Tx,
+            {
+              encoding: "base58",
+              skipPreflight: true,
+              maxRetries: 0,
+            },
+          ],
         }),
       });
 
@@ -290,7 +299,7 @@ async function sendJitoBundle(base58Tx: string): Promise<JitoBundleResult> {
       console.log(`Jito response from ${endpoint}:`, responseText);
 
       if (!response.ok) {
-        errors.push(`${endpoint}: HTTP ${response.status}`);
+        errors.push(`${endpoint}: HTTP ${response.status} - ${responseText}`);
         continue;
       }
 
@@ -301,10 +310,11 @@ async function sendJitoBundle(base58Tx: string): Promise<JitoBundleResult> {
         continue;
       }
 
-      // Success - return bundle ID
+      // Success - return signature
       return {
         success: true,
-        bundleId: data.result,
+        signature: data.result,
+        method: "jito",
       };
     } catch (error) {
       errors.push(`${endpoint}: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -319,10 +329,61 @@ async function sendJitoBundle(base58Tx: string): Promise<JitoBundleResult> {
 }
 
 /**
- * Poll for bundle status to confirm landing
+ * Send a transaction via Kora (fallback)
  */
-async function waitForBundleConfirmation(
-  bundleId: string,
+async function sendViaKora(base64Tx: string): Promise<SendResult> {
+  try {
+    console.log("Falling back to Kora for transaction send...");
+
+    const response = await fetch(KORA_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "sendTransaction",
+        params: [base64Tx],
+      }),
+    });
+
+    const responseText = await response.text();
+    console.log("Kora send response:", responseText);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `Kora HTTP ${response.status}: ${responseText}`,
+      };
+    }
+
+    const data = JSON.parse(responseText);
+
+    if (data.error) {
+      return {
+        success: false,
+        error: data.error.message || JSON.stringify(data.error),
+      };
+    }
+
+    return {
+      success: true,
+      signature: data.result,
+      method: "kora",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Poll for transaction confirmation
+ */
+async function waitForConfirmation(
   signature: string,
   maxAttempts: number = 30
 ): Promise<{ confirmed: boolean; error?: string }> {
@@ -341,7 +402,7 @@ async function waitForBundleConfirmation(
           };
         }
         if (status.value.confirmationStatus === "confirmed" || status.value.confirmationStatus === "finalized") {
-          console.log(`Bundle ${bundleId} confirmed after ${attempt + 1} attempts`);
+          console.log(`Transaction confirmed after ${attempt + 1} attempts`);
           return { confirmed: true };
         }
       }
@@ -356,7 +417,7 @@ async function waitForBundleConfirmation(
 
   return {
     confirmed: false,
-    error: "Bundle confirmation timeout - transaction may still land",
+    error: "Confirmation timeout - transaction may still land",
   };
 }
 
@@ -388,7 +449,7 @@ export async function POST(request: NextRequest) {
 
     console.log("Transaction validated, requesting Kora signature:", KORA_ENDPOINT);
 
-    // Request Kora to sign the transaction (sign only, we'll send via Jito)
+    // Request Kora to sign the transaction
     const koraResponse = await fetch(KORA_ENDPOINT, {
       method: "POST",
       headers: {
@@ -397,7 +458,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
-        method: "signTransaction", // Sign only, don't send
+        method: "signTransaction",
         params: [transaction],
       }),
     });
@@ -436,36 +497,41 @@ export async function POST(request: NextRequest) {
     // Convert to base58 for Jito
     const signedTxBase58 = base64ToBase58(signedTxBase64);
 
-    // Send via Jito bundle
-    console.log("Sending transaction via Jito bundle...");
-    const jitoResult = await sendJitoBundle(signedTxBase58);
+    // Try Jito first, then fall back to Kora
+    console.log("Attempting to send via Jito...");
+    let sendResult = await sendViaJito(signedTxBase58);
 
-    if (!jitoResult.success) {
-      console.error("Jito bundle failed:", jitoResult.error);
+    if (!sendResult.success) {
+      console.warn("Jito failed, falling back to Kora:", sendResult.error);
+      sendResult = await sendViaKora(signedTxBase64);
+    }
+
+    if (!sendResult.success) {
+      console.error("All send methods failed:", sendResult.error);
       return NextResponse.json(
-        { error: `Jito bundle failed: ${jitoResult.error}` },
+        { error: `Failed to send transaction: ${sendResult.error}` },
         { status: 500 }
       );
     }
 
-    console.log("Jito bundle submitted:", jitoResult.bundleId);
+    console.log(`Transaction sent via ${sendResult.method}:`, signature);
 
-    // Wait for bundle confirmation
-    const confirmation = await waitForBundleConfirmation(jitoResult.bundleId!, signature);
+    // Wait for confirmation
+    const confirmation = await waitForConfirmation(signature);
 
     if (!confirmation.confirmed) {
-      // Return signature anyway - bundle may still land
-      console.warn("Bundle confirmation timeout:", confirmation.error);
+      // Return signature anyway - tx may still land
+      console.warn("Confirmation timeout:", confirmation.error);
       return NextResponse.json({
         signature,
-        bundleId: jitoResult.bundleId,
+        method: sendResult.method,
         warning: confirmation.error,
       });
     }
 
     return NextResponse.json({
       signature,
-      bundleId: jitoResult.bundleId,
+      method: sendResult.method,
     });
   } catch (error) {
     console.error("Sponsor error:", error);
