@@ -311,7 +311,7 @@ export default function Home() {
         <div className="w-full max-w-lg">
           {/* Header */}
           <div className="text-center mb-6">
-            <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-2">Free Rent</h1>
+            <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-2 font-display">Free Rent</h1>
             <p className="text-gray-400 text-sm sm:text-base mb-1">Get your money back</p>
             <p className="text-cyan-500 text-xs sm:text-sm font-medium">freerent.money</p>
           </div>

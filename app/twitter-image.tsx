@@ -10,6 +10,11 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
+  // Load Space Grotesk Bold font
+  const spaceGrotesk = await fetch(
+    new URL("https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6r8E7mPb54C_k3HqUtEw.woff2")
+  ).then((res) => res.arrayBuffer());
+
   return new ImageResponse(
     (
       <div
@@ -41,11 +46,11 @@ export default async function Image() {
         <div
           style={{
             fontSize: 96,
-            fontWeight: 800,
+            fontWeight: 700,
             color: "#22d3ee",
             textShadow: "0 0 40px rgba(34, 211, 238, 0.5)",
             marginBottom: 16,
-            fontFamily: "monospace",
+            fontFamily: "Space Grotesk",
           }}
         >
           Free Rent
@@ -89,6 +94,14 @@ export default async function Image() {
     ),
     {
       ...size,
+      fonts: [
+        {
+          name: "Space Grotesk",
+          data: spaceGrotesk,
+          style: "normal",
+          weight: 700,
+        },
+      ],
     }
   );
 }

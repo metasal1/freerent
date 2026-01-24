@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Analytics } from "@vercel/analytics/next";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["700"],
+});
 
 export const metadata: Metadata = {
   title: "Free Rent - Get Your Money Back",
@@ -36,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={spaceGrotesk.variable}>
       <body className="antialiased">
         <ClientProviders>{children}</ClientProviders>
         <Analytics />

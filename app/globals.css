@@ -6,6 +6,10 @@
   --brand-glow: rgba(34, 211, 238, 0.5);
 }
 
+.font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
 body {
   background: #000;
   color: #fff;
