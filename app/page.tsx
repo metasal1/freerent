@@ -504,7 +504,7 @@ export default function Home() {
                     <div className="flex justify-between items-center">
                       <div>
                         <div className="text-sm text-gray-300">{selectedIds.size} account{selectedIds.size > 1 ? "s" : ""}</div>
-                        <div className="text-xs text-gray-500">{FEE_PERCENT}% fee: {fee.toFixed(4)} SOL</div>
+                        <div className="text-xs text-gray-500">Fee (tx cost + {FEE_PERCENT}%): {fee.toFixed(4)} SOL</div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-cyan-400">+{netRent.toFixed(4)}</div>
@@ -532,7 +532,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-gray-800/50 py-6 text-center">
-        <p className="text-gray-600 text-xs mb-1">Gas-free transactions • {FEE_PERCENT}% service fee</p>
+        <p className="text-gray-600 text-xs mb-1">Gas-free • tx cost + {FEE_PERCENT}% fee</p>
         <p className="text-gray-600 text-xs mb-2">
           Beta: Some accounts cannot be closed. <a href="https://t.me/metasal" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:text-cyan-400">Report issues</a>
         </p>

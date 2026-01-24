@@ -7,7 +7,7 @@ import {
 } from "@solana/web3.js";
 import { createCloseAccountInstruction } from "@solana/spl-token";
 import { TokenAccountInfo } from "./getTokenAccounts";
-import { FEE_RECIPIENT, FEE_PERCENT, MAX_ACCOUNTS_PER_TX } from "./constants";
+import { FEE_RECIPIENT, FEE_PERCENT, MAX_ACCOUNTS_PER_TX, TX_FEE_LAMPORTS } from "./constants";
 
 export interface CloseAccountsResult {
   transaction: Transaction;
@@ -53,9 +53,11 @@ export function buildCloseAccountsTransaction(
     totalRentLamports += account.rentLamports;
   }
 
-  // Calculate fee (1% of recovered rent)
+  // Calculate fee (transaction cost + 1% of recovered rent)
   const totalRentSol = totalRentLamports / 1e9;
-  const fee = totalRentSol * (FEE_PERCENT / 100);
+  const serviceFee = totalRentSol * (FEE_PERCENT / 100);
+  const txFeeSol = TX_FEE_LAMPORTS / 1e9;
+  const fee = serviceFee + txFeeSol;
   const feeLamports = Math.floor(fee * 1e9);
 
   // Add fee transfer instruction

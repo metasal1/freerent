@@ -8,7 +8,10 @@ export const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC
 export const FEE_RECIPIENT = new PublicKey(
   process.env.NEXT_PUBLIC_FEE_RECIPIENT || "va1TBuMdfdgHUb3fYA79CfFQPFf3KQ3k86n5dp4hHRr"
 );
-export const FEE_PERCENT = Number(process.env.NEXT_PUBLIC_FEE_PERCENT) || 1.67;
+export const FEE_PERCENT = Number(process.env.NEXT_PUBLIC_FEE_PERCENT) || 1;
+
+// Solana transaction fee (5000 lamports per signature, typically 1 signature)
+export const TX_FEE_LAMPORTS = 5000;
 
 // Rent per token account (approximate)
 export const RENT_PER_ACCOUNT = 0.00203928; // SOL
