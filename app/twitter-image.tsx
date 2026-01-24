@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export const alt = "Free Rent - Get Your Money Back";
 export const size = {
@@ -10,6 +12,10 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
+  // Load Space Grotesk Bold font from local file
+  const fontPath = join(process.cwd(), "app/fonts/SpaceGrotesk-Bold.woff2");
+  const fontData = await readFile(fontPath);
+
   return new ImageResponse(
     (
       <div
@@ -23,7 +29,6 @@ export default async function Image() {
           alignItems: "center",
           justifyContent: "center",
           padding: "40px",
-          fontFamily: "system-ui, sans-serif",
         }}
       >
         {/* Glow effect background */}
@@ -41,11 +46,12 @@ export default async function Image() {
         <div
           style={{
             fontSize: 120,
-            fontWeight: 900,
+            fontWeight: 700,
             color: "#22d3ee",
             textShadow: "0 0 60px rgba(34, 211, 238, 0.8), 0 0 120px rgba(34, 211, 238, 0.4)",
             marginBottom: 20,
             letterSpacing: "-0.02em",
+            fontFamily: "Space Grotesk",
           }}
         >
           Free Rent
@@ -69,6 +75,7 @@ export default async function Image() {
             fontSize: 32,
             color: "#22d3ee",
             fontWeight: 700,
+            fontFamily: "Space Grotesk",
           }}
         >
           freerent.money
@@ -90,6 +97,14 @@ export default async function Image() {
     ),
     {
       ...size,
+      fonts: [
+        {
+          name: "Space Grotesk",
+          data: fontData,
+          style: "normal",
+          weight: 700,
+        },
+      ],
     }
   );
 }
