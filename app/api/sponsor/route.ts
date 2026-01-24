@@ -6,6 +6,15 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAccount, TokenAccountNotFou
 const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.up.railway.app";
 const SOLANA_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 
+// Jito block engine endpoints (multiple for redundancy)
+const JITO_ENDPOINTS = [
+  "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
+];
+
 // Kora fee payer address (from getConfig)
 const KORA_FEE_PAYER = "va1TBuMdfdgHUb3fYA79CfFQPFf3KQ3k86n5dp4hHRr";
 
@@ -241,6 +250,116 @@ function extractSignatureFromTransaction(base64Tx: string): string {
   return bs58.encode(signatureBytes);
 }
 
+// Convert base64 transaction to base58 for Jito
+function base64ToBase58(base64Tx: string): string {
+  const txBytes = Buffer.from(base64Tx, "base64");
+  return bs58.encode(txBytes);
+}
+
+interface JitoBundleResult {
+  success: boolean;
+  bundleId?: string;
+  error?: string;
+}
+
+/**
+ * Send a transaction as a Jito bundle
+ * Tries multiple Jito endpoints for redundancy
+ */
+async function sendJitoBundle(base58Tx: string): Promise<JitoBundleResult> {
+  const errors: string[] = [];
+
+  for (const endpoint of JITO_ENDPOINTS) {
+    try {
+      console.log(`Trying Jito endpoint: ${endpoint}`);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "sendBundle",
+          params: [[base58Tx]], // Bundle is an array of transactions
+        }),
+      });
+
+      const responseText = await response.text();
+      console.log(`Jito response from ${endpoint}:`, responseText);
+
+      if (!response.ok) {
+        errors.push(`${endpoint}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const data = JSON.parse(responseText);
+
+      if (data.error) {
+        errors.push(`${endpoint}: ${data.error.message || JSON.stringify(data.error)}`);
+        continue;
+      }
+
+      // Success - return bundle ID
+      return {
+        success: true,
+        bundleId: data.result,
+      };
+    } catch (error) {
+      errors.push(`${endpoint}: ${error instanceof Error ? error.message : "Unknown error"}`);
+      continue;
+    }
+  }
+
+  return {
+    success: false,
+    error: `All Jito endpoints failed: ${errors.join("; ")}`,
+  };
+}
+
+/**
+ * Poll for bundle status to confirm landing
+ */
+async function waitForBundleConfirmation(
+  bundleId: string,
+  signature: string,
+  maxAttempts: number = 30
+): Promise<{ confirmed: boolean; error?: string }> {
+  const connection = new Connection(SOLANA_RPC, "confirmed");
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      // Check if transaction landed on-chain
+      const status = await connection.getSignatureStatus(signature);
+
+      if (status.value !== null) {
+        if (status.value.err) {
+          return {
+            confirmed: false,
+            error: `Transaction failed: ${JSON.stringify(status.value.err)}`,
+          };
+        }
+        if (status.value.confirmationStatus === "confirmed" || status.value.confirmationStatus === "finalized") {
+          console.log(`Bundle ${bundleId} confirmed after ${attempt + 1} attempts`);
+          return { confirmed: true };
+        }
+      }
+
+      // Wait 500ms before next check
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (error) {
+      // Ignore errors and keep polling
+      console.log(`Poll attempt ${attempt + 1} error:`, error);
+    }
+  }
+
+  return {
+    confirmed: false,
+    error: "Bundle confirmation timeout - transaction may still land",
+  };
+}
+
 export async function GET() {
   return NextResponse.json({ feePayer: KORA_FEE_PAYER });
 }
@@ -267,10 +386,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Transaction validated, forwarding to Kora:", KORA_ENDPOINT);
+    console.log("Transaction validated, requesting Kora signature:", KORA_ENDPOINT);
 
-    // Kora uses JSON-RPC format
-    const response = await fetch(KORA_ENDPOINT, {
+    // Request Kora to sign the transaction (sign only, we'll send via Jito)
+    const koraResponse = await fetch(KORA_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -278,47 +397,76 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
-        method: "signAndSendTransaction",
+        method: "signTransaction", // Sign only, don't send
         params: [transaction],
       }),
     });
 
-    const responseText = await response.text();
-    console.log("Kora response status:", response.status);
-    console.log("Kora response:", responseText);
+    const koraResponseText = await koraResponse.text();
+    console.log("Kora response status:", koraResponse.status);
+    console.log("Kora response:", koraResponseText);
 
-    if (!response.ok) {
+    if (!koraResponse.ok) {
       return NextResponse.json(
-        { error: `Kora error (${response.status}): ${responseText || "No response"}` },
-        { status: response.status }
+        { error: `Kora error (${koraResponse.status}): ${koraResponseText || "No response"}` },
+        { status: koraResponse.status }
       );
     }
 
     // Parse JSON-RPC response
-    const data = JSON.parse(responseText);
+    const koraData = JSON.parse(koraResponseText);
 
-    if (data.error) {
+    if (koraData.error) {
       return NextResponse.json(
-        { error: `Kora error: ${data.error.message || JSON.stringify(data.error)}` },
+        { error: `Kora error: ${koraData.error.message || JSON.stringify(koraData.error)}` },
         { status: 400 }
       );
     }
 
-    // Extract signature from the signed transaction
-    const signedTx = data.result?.signed_transaction || data.result;
-    let signature: string;
+    // Get the signed transaction from Kora
+    const signedTxBase64 = koraData.result?.signed_transaction || koraData.result;
 
-    if (typeof signedTx === "string") {
-      // Extract signature from the signed transaction bytes
-      signature = extractSignatureFromTransaction(signedTx);
-    } else if (typeof data.result === "string") {
-      // If result is directly a signature string
-      signature = data.result;
-    } else {
-      throw new Error("Unexpected Kora response format");
+    if (typeof signedTxBase64 !== "string") {
+      throw new Error("Unexpected Kora response format - expected signed transaction");
     }
 
-    return NextResponse.json({ signature });
+    // Extract signature for return value
+    const signature = extractSignatureFromTransaction(signedTxBase64);
+
+    // Convert to base58 for Jito
+    const signedTxBase58 = base64ToBase58(signedTxBase64);
+
+    // Send via Jito bundle
+    console.log("Sending transaction via Jito bundle...");
+    const jitoResult = await sendJitoBundle(signedTxBase58);
+
+    if (!jitoResult.success) {
+      console.error("Jito bundle failed:", jitoResult.error);
+      return NextResponse.json(
+        { error: `Jito bundle failed: ${jitoResult.error}` },
+        { status: 500 }
+      );
+    }
+
+    console.log("Jito bundle submitted:", jitoResult.bundleId);
+
+    // Wait for bundle confirmation
+    const confirmation = await waitForBundleConfirmation(jitoResult.bundleId!, signature);
+
+    if (!confirmation.confirmed) {
+      // Return signature anyway - bundle may still land
+      console.warn("Bundle confirmation timeout:", confirmation.error);
+      return NextResponse.json({
+        signature,
+        bundleId: jitoResult.bundleId,
+        warning: confirmation.error,
+      });
+    }
+
+    return NextResponse.json({
+      signature,
+      bundleId: jitoResult.bundleId,
+    });
   } catch (error) {
     console.error("Sponsor error:", error);
     return NextResponse.json(
