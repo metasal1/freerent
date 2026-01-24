@@ -291,11 +291,27 @@ export default function Home() {
               </button>
             </div>
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(error);
-                const btn = document.activeElement as HTMLButtonElement;
+              onClick={async (e) => {
+                const btn = e.currentTarget;
                 const original = btn.textContent;
-                btn.textContent = "Copied!";
+                try {
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(error);
+                  } else {
+                    // Fallback for iOS webviews
+                    const textArea = document.createElement('textarea');
+                    textArea.value = error;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                  }
+                  btn.textContent = "Copied!";
+                } catch {
+                  btn.textContent = "Failed";
+                }
                 setTimeout(() => { btn.textContent = original; }, 1500);
               }}
               className="text-xs text-red-300/70 hover:text-red-300 mt-2"
