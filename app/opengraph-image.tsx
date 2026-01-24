@@ -12,8 +12,8 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
-  // Load Space Grotesk Bold font from local file
-  const fontPath = join(process.cwd(), "app/fonts/SpaceGrotesk-Bold.woff2");
+  // Load Space Grotesk Bold font from local file (.woff - Satori doesn't support woff2)
+  const fontPath = join(process.cwd(), "app/fonts/SpaceGrotesk-Bold.woff");
   const fontData = await readFile(fontPath);
 
   return new ImageResponse(
