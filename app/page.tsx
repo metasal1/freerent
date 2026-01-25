@@ -623,14 +623,15 @@ export default function Home() {
                       const usdValue = meta ? calculateTokenValue(account.amount, account.decimals, meta.usdPrice) : null;
                       const canSelect = mode === "burn" ? account.canBurn : account.canClose;
                       const maxAccounts = mode === "burn" ? MAX_ACCOUNTS_PER_BURN_TX : MAX_ACCOUNTS_PER_TX;
+                      const blockReason = mode === "burn" ? account.burnBlockedReason : account.closeBlockedReason;
 
                       return (
                         <div
                           key={key}
                           onClick={() => canSelect && selectedIds.size < maxAccounts && toggleSelect(key)}
-                          className={`p-3 rounded-xl cursor-pointer transition-all ${
+                          className={`p-3 rounded-xl cursor-pointer transition-all relative ${
                             !canSelect
-                              ? "opacity-30 cursor-not-allowed bg-gray-800/30"
+                              ? "opacity-50 cursor-not-allowed bg-gray-800/30"
                               : selected
                               ? mode === "burn"
                                 ? "bg-orange-500/10 border border-orange-500/50"
@@ -638,6 +639,12 @@ export default function Home() {
                               : "bg-gray-800/30 hover:bg-gray-800/50"
                           }`}
                         >
+                          {/* Show reason why account is blocked */}
+                          {!canSelect && blockReason && (
+                            <div className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">
+                              {blockReason}
+                            </div>
+                          )}
                           {mode === "burn" ? (
                             // Burn mode: show token info
                             <div className="flex items-start gap-3">
