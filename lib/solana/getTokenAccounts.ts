@@ -1,6 +1,48 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, RENT_PER_ACCOUNT } from "./constants";
 
+// Token account state enum
+const AccountState = {
+  Uninitialized: 0,
+  Initialized: 1,
+  Frozen: 2,
+} as const;
+
+// Parse raw token account data from base64
+function parseTokenAccountData(data: Buffer, expectedOwner: PublicKey): {
+  mint: PublicKey;
+  owner: PublicKey;
+  amount: bigint;
+  state: number;
+  closeAuthority: PublicKey | null;
+} | null {
+  // Minimum size for token account is 165 bytes
+  if (data.length < 165) return null;
+
+  try {
+    const mint = new PublicKey(data.slice(0, 32));
+    const owner = new PublicKey(data.slice(32, 64));
+    const amount = data.readBigUInt64LE(64);
+    // Skip delegate (4 + 32 bytes) at offset 72
+    const state = data[108];
+    // Skip isNative (4 + 8 bytes) at offset 109
+    // Skip delegatedAmount (8 bytes) at offset 121
+    const closeAuthorityOption = data.readUInt32LE(129);
+    const closeAuthority = closeAuthorityOption === 1
+      ? new PublicKey(data.slice(133, 165))
+      : null;
+
+    return { mint, owner, amount, state, closeAuthority };
+  } catch {
+    return null;
+  }
+}
+
+// Check if account data is base64 encoded (array format) vs parsed object
+function isBase64Data(data: any): data is [string, string] {
+  return Array.isArray(data) && data.length === 2 && typeof data[0] === 'string' && data[1] === 'base64';
+}
+
 export interface TokenAccountInfo {
   pubkey: PublicKey;
   mint: PublicKey;
@@ -57,25 +99,42 @@ export async function getTokenAccounts(
 
   // Process Token Program accounts (standard SPL)
   for (const { pubkey, account } of tokenAccounts.value) {
-    // Skip accounts that couldn't be parsed
-    if (!account.data.parsed?.info) continue;
-    const parsed = account.data.parsed.info;
-    const amount = BigInt(parsed.tokenAmount.amount);
+    let mint: PublicKey;
+    let accountOwner: PublicKey;
+    let amount: bigint;
+    let decimals: number;
+    let isFrozen: boolean;
+    let hasCloseAuthority: boolean;
+
+    // Handle both parsed and base64 data formats
+    if (isBase64Data(account.data)) {
+      // Parse base64 encoded data manually
+      const buffer = Buffer.from(account.data[0], 'base64');
+      const parsed = parseTokenAccountData(buffer, owner);
+      if (!parsed) continue;
+
+      mint = parsed.mint;
+      accountOwner = parsed.owner;
+      amount = parsed.amount;
+      decimals = 0; // Unknown for base64, default to 0 (works for NFTs)
+      isFrozen = parsed.state === AccountState.Frozen;
+      hasCloseAuthority = parsed.closeAuthority !== null && !parsed.closeAuthority.equals(parsed.owner);
+    } else if (account.data.parsed?.info) {
+      // Use parsed data
+      const parsed = account.data.parsed.info;
+      mint = new PublicKey(parsed.mint);
+      accountOwner = new PublicKey(parsed.owner);
+      amount = BigInt(parsed.tokenAmount.amount);
+      decimals = parsed.tokenAmount.decimals;
+      isFrozen = parsed.state === "frozen";
+      hasCloseAuthority = parsed.closeAuthority && parsed.closeAuthority !== parsed.owner;
+    } else {
+      // Skip accounts that couldn't be parsed
+      continue;
+    }
+
     const isEmpty = amount === 0n;
-    const accountOwner = new PublicKey(parsed.owner);
-
-    // Verify the owner matches
     const ownerMatches = accountOwner.equals(owner);
-
-    // Check for close authority (if set, only that authority can close)
-    const closeAuthority = parsed.closeAuthority;
-    const hasCloseAuthority = closeAuthority && closeAuthority !== parsed.owner;
-
-    // Check if account is frozen
-    const isFrozen = parsed.state === "frozen";
-
-    // Check for delegate (delegated accounts may have issues)
-    const hasDelegate = parsed.delegate && parsed.delegatedAmount?.uiAmount > 0;
 
     let canClose = isEmpty && ownerMatches && !hasCloseAuthority && !isFrozen;
     let closeBlockedReason: string | undefined;
@@ -102,10 +161,10 @@ export async function getTokenAccounts(
 
     accounts.push({
       pubkey,
-      mint: new PublicKey(parsed.mint),
+      mint,
       owner: accountOwner,
       amount,
-      decimals: parsed.tokenAmount.decimals,
+      decimals,
       rentLamports: account.lamports,
       isEmpty,
       programId: TOKEN_PROGRAM_ID,
@@ -118,56 +177,85 @@ export async function getTokenAccounts(
 
   // Process Token-2022 accounts (may have extensions that block closing)
   for (const { pubkey, account } of token2022Accounts.value) {
-    // Skip accounts that couldn't be parsed
-    if (!account.data.parsed?.info) continue;
-    const parsed = account.data.parsed.info;
-    const amount = BigInt(parsed.tokenAmount.amount);
+    let mint: PublicKey;
+    let accountOwner: PublicKey;
+    let amount: bigint;
+    let decimals: number;
+    let isFrozen: boolean;
+    let hasCloseAuthority: boolean;
+    let hasConfidentialTransfer = false;
+    let hasPermanentDelegate = false;
+    let isNonTransferable = false;
+    let hasTransferHook = false;
+    let hasWithheldFees = false;
+    let hasUnknownExtensions = false;
+
+    // Handle both parsed and base64 data formats
+    if (isBase64Data(account.data)) {
+      // Parse base64 encoded data manually
+      const buffer = Buffer.from(account.data[0], 'base64');
+      const parsed = parseTokenAccountData(buffer, owner);
+      if (!parsed) continue;
+
+      mint = parsed.mint;
+      accountOwner = parsed.owner;
+      amount = parsed.amount;
+      decimals = 0; // Unknown for base64, default to 0 (works for NFTs/position tokens)
+      isFrozen = parsed.state === AccountState.Frozen;
+      hasCloseAuthority = parsed.closeAuthority !== null && !parsed.closeAuthority.equals(parsed.owner);
+
+      // For Token-2022 base64 accounts, we can't easily parse extensions
+      // Mark as having unknown extensions if account is larger than base size
+      if (buffer.length > 165) {
+        hasUnknownExtensions = true;
+      }
+    } else if (account.data.parsed?.info) {
+      // Use parsed data
+      const parsed = account.data.parsed.info;
+      mint = new PublicKey(parsed.mint);
+      accountOwner = new PublicKey(parsed.owner);
+      amount = BigInt(parsed.tokenAmount.amount);
+      decimals = parsed.tokenAmount.decimals;
+      isFrozen = parsed.state === "frozen";
+
+      // Parse extensions and check for blockers
+      const extensions = parsed.extensions || [];
+
+      hasConfidentialTransfer = extensions.some(
+        (ext: { extension: string }) =>
+          ext.extension === "confidentialTransferAccount" ||
+          ext.extension === "confidentialTransferFeeAmount"
+      );
+
+      hasPermanentDelegate = extensions.some(
+        (ext: { extension: string }) => ext.extension === "permanentDelegate"
+      );
+
+      const closeAuthorityExt = extensions.find(
+        (ext: { extension: string; state?: { closeAuthority?: string } }) =>
+          ext.extension === "mintCloseAuthority"
+      );
+      hasCloseAuthority = closeAuthorityExt || (parsed.closeAuthority && parsed.closeAuthority !== parsed.owner);
+
+      isNonTransferable = extensions.some(
+        (ext: { extension: string }) => ext.extension === "nonTransferable"
+      );
+
+      hasTransferHook = extensions.some(
+        (ext: { extension: string }) => ext.extension === "transferHook" || ext.extension === "transferHookAccount"
+      );
+
+      const transferFeeExt = extensions.find(
+        (ext: { extension: string; state?: { withheldAmount?: string } }) => ext.extension === "transferFeeAmount"
+      ) as { extension: string; state?: { withheldAmount?: string } } | undefined;
+      hasWithheldFees = !!(transferFeeExt?.state?.withheldAmount && BigInt(transferFeeExt.state.withheldAmount) > 0n);
+    } else {
+      // Skip accounts that couldn't be parsed
+      continue;
+    }
+
     const isEmpty = amount === 0n;
-    const accountOwner = new PublicKey(parsed.owner);
-
-    // Verify the owner matches
     const ownerMatches = accountOwner.equals(owner);
-
-    // Parse extensions and check for blockers
-    const extensions = parsed.extensions || [];
-
-    // Check for confidential transfer extension
-    const hasConfidentialTransfer = extensions.some(
-      (ext: { extension: string }) =>
-        ext.extension === "confidentialTransferAccount" ||
-        ext.extension === "confidentialTransferFeeAmount"
-    );
-
-    // Check for permanent delegate
-    const hasPermanentDelegate = extensions.some(
-      (ext: { extension: string }) => ext.extension === "permanentDelegate"
-    );
-
-    // Check for close authority extension
-    const closeAuthorityExt = extensions.find(
-      (ext: { extension: string; state?: { closeAuthority?: string } }) =>
-        ext.extension === "mintCloseAuthority"
-    );
-    const hasCloseAuthority = closeAuthorityExt || (parsed.closeAuthority && parsed.closeAuthority !== parsed.owner);
-
-    // Check if account is frozen
-    const isFrozen = parsed.state === "frozen";
-
-    // Check for non-transferable
-    const isNonTransferable = extensions.some(
-      (ext: { extension: string }) => ext.extension === "nonTransferable"
-    );
-
-    // Check for transfer hook (may cause issues)
-    const hasTransferHook = extensions.some(
-      (ext: { extension: string }) => ext.extension === "transferHook" || ext.extension === "transferHookAccount"
-    );
-
-    // Check for withheld transfer fees (blocks closing)
-    const transferFeeExt = extensions.find(
-      (ext: { extension: string; state?: { withheldAmount?: string } }) => ext.extension === "transferFeeAmount"
-    ) as { extension: string; state?: { withheldAmount?: string } } | undefined;
-    const hasWithheldFees = transferFeeExt?.state?.withheldAmount && BigInt(transferFeeExt.state.withheldAmount) > 0n;
 
     // Determine if account can be closed
     let canClose = isEmpty && ownerMatches;
@@ -176,6 +264,9 @@ export async function getTokenAccounts(
     if (!ownerMatches) {
       canClose = false;
       closeBlockedReason = "Owner mismatch";
+    } else if (hasUnknownExtensions) {
+      canClose = false;
+      closeBlockedReason = "Has extensions (unparsed)";
     } else if (hasConfidentialTransfer) {
       canClose = false;
       closeBlockedReason = "Has confidential transfer";
@@ -200,7 +291,7 @@ export async function getTokenAccounts(
     }
 
     // Burn validation for Token-2022
-    let canBurn = !isEmpty && ownerMatches && !isFrozen && !hasPermanentDelegate;
+    let canBurn = !isEmpty && ownerMatches && !isFrozen && !hasPermanentDelegate && !hasUnknownExtensions;
     let burnBlockedReason: string | undefined;
 
     if (isEmpty) {
@@ -211,14 +302,16 @@ export async function getTokenAccounts(
       burnBlockedReason = "Account is frozen";
     } else if (hasPermanentDelegate) {
       burnBlockedReason = "Has permanent delegate";
+    } else if (hasUnknownExtensions) {
+      burnBlockedReason = "Has extensions (unparsed)";
     }
 
     accounts.push({
       pubkey,
-      mint: new PublicKey(parsed.mint),
+      mint,
       owner: accountOwner,
       amount,
-      decimals: parsed.tokenAmount.decimals,
+      decimals,
       rentLamports: account.lamports,
       isEmpty,
       programId: TOKEN_2022_PROGRAM_ID,
