@@ -136,6 +136,12 @@ export async function getTokenAccounts(
       (ext: { extension: string }) => ext.extension === "transferHook" || ext.extension === "transferHookAccount"
     );
 
+    // Check for withheld transfer fees (blocks closing)
+    const transferFeeExt = extensions.find(
+      (ext: { extension: string; state?: { withheldAmount?: string } }) => ext.extension === "transferFeeAmount"
+    ) as { extension: string; state?: { withheldAmount?: string } } | undefined;
+    const hasWithheldFees = transferFeeExt?.state?.withheldAmount && BigInt(transferFeeExt.state.withheldAmount) > 0n;
+
     // Determine if account can be closed
     let canClose = isEmpty && ownerMatches;
     let closeBlockedReason: string | undefined;
@@ -161,6 +167,9 @@ export async function getTokenAccounts(
     } else if (hasTransferHook) {
       canClose = false;
       closeBlockedReason = "Has transfer hook";
+    } else if (hasWithheldFees) {
+      canClose = false;
+      closeBlockedReason = "Has withheld fees";
     }
 
     // Burn validation for Token-2022

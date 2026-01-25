@@ -671,7 +671,21 @@ export default function Home() {
                                     <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded">verified</span>
                                   )}
                                 </div>
-                                <div className="text-xs text-gray-500 truncate">{meta?.name || "Unknown token"}</div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-gray-500 truncate">{meta?.name || "Unknown token"}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(key);
+                                    }}
+                                    className="p-0.5 text-gray-500 hover:text-cyan-400 transition-colors"
+                                    title="Copy account address"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                  </button>
+                                </div>
                                 <div className="flex items-center gap-2 mt-1 text-xs">
                                   <span className="text-orange-400">{tokenAmount.toLocaleString(undefined, { maximumFractionDigits: 6 })}</span>
                                   {usdValue !== null && <span className="text-gray-500">(${usdValue.toFixed(4)})</span>}
@@ -702,6 +716,18 @@ export default function Home() {
                                 <code className="text-xs text-gray-400">
                                   {key.slice(0, 6)}...{key.slice(-4)}
                                 </code>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(key);
+                                  }}
+                                  className="ml-1 p-1 text-gray-500 hover:text-cyan-400 transition-colors"
+                                  title="Copy address"
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
                               </div>
                               <span className="text-cyan-400 text-sm font-semibold">{rent}</span>
                             </div>
