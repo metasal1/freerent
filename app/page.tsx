@@ -829,6 +829,9 @@ export default function Home() {
         <a href="https://metasal.xyz" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-cyan-400 text-xs transition-colors">
           metasal.xyz
         </a>
+        <p className="text-gray-700 text-[10px] mt-2">
+          build: {process.env.NEXT_PUBLIC_BUILD_ID} ({process.env.NEXT_PUBLIC_BUILD_TIME})
+        </p>
       </footer>
     </div>
   );
