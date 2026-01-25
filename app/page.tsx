@@ -5,6 +5,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { track } from "@vercel/analytics";
+import { Tweet } from "react-tweet";
 import { getTokenAccounts, TokenAccountInfo } from "@/lib/solana/getTokenAccounts";
 import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { buildBurnAccountsTransaction } from "@/lib/solana/burnTokens";
@@ -816,6 +817,11 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-gray-800/50 py-6 text-center">
+        {!connected && (
+          <div className="max-w-lg mx-auto mb-6 px-4" data-theme="dark">
+            <Tweet id="2015243704777490639" />
+          </div>
+        )}
         <p className="text-gray-600 text-xs mb-1">Gas-free • tx cost + {FEE_PERCENT}% fee</p>
         <p className="text-gray-600 text-xs mb-2">
           Beta: Some accounts cannot be closed. <a href="https://t.me/metasal" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:text-cyan-400">Report issues</a>

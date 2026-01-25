@@ -56,3 +56,17 @@ body {
   border-color: var(--brand);
   box-shadow: 0 0 10px var(--brand-glow);
 }
+
+/* react-tweet dark theme */
+[data-theme="dark"] {
+  --tweet-bg-color: transparent;
+  --tweet-bg-color-hover: rgba(255, 255, 255, 0.03);
+  --tweet-border-color: rgb(47, 51, 54);
+  --tweet-color-text-primary: rgb(231, 233, 234);
+  --tweet-color-text-secondary: rgb(113, 118, 123);
+  --tweet-color-blue-primary: rgb(29, 155, 240);
+  --tweet-color-blue-primary-hover: rgb(26, 140, 216);
+  --tweet-color-red-primary: rgb(249, 24, 128);
+  --tweet-color-green-primary: rgb(0, 186, 124);
+  --tweet-color-orange-primary: rgb(255, 122, 0);
+}
