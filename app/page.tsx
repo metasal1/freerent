@@ -460,7 +460,7 @@ export default function Home() {
             <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4 mb-6 text-sm">
               <p className="text-cyan-400 font-medium mb-3">What is Free Rent?</p>
               <ul className="text-gray-400 space-y-2 mb-4">
-                <li>• Every Solana token account (USDC, memecoins, etc.) requires a <span className="text-white">rent deposit</span> of ~{minRent?.toFixed(4) || "0.002"} SOL{solPrice && minRent && <span className="text-cyan-400"> (~${(minRent * solPrice).toFixed(2)})</span>}</li>
+                <li>• Every Solana token account (USDC, memecoins, etc.) requires a <span className="text-white">rent deposit</span> of ~{minRent?.toFixed(6) || "0.002039"} SOL{solPrice && minRent && <span className="text-cyan-400"> (~${(minRent * solPrice).toFixed(2)})</span>}</li>
                 <li>• Over time, you accumulate <span className="text-white">empty accounts</span> from tokens you've sold or transferred</li>
                 <li>• These empty accounts still <span className="text-white">hold your SOL hostage</span></li>
               </ul>
