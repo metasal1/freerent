@@ -30,6 +30,8 @@ export async function getTokenAccounts(
 
   // Process Token Program accounts (standard SPL)
   for (const { pubkey, account } of tokenAccounts.value) {
+    // Skip accounts with base64 data (not parsed) - some RPC proxies return raw data
+    if (Array.isArray(account.data) || typeof account.data !== 'object') continue;
     // Skip accounts that couldn't be parsed
     if (!account.data.parsed?.info) continue;
     const parsed = account.data.parsed.info;
@@ -91,6 +93,8 @@ export async function getTokenAccounts(
 
   // Process Token-2022 accounts (may have extensions that block closing)
   for (const { pubkey, account } of token2022Accounts.value) {
+    // Skip accounts with base64 data (not parsed) - some RPC proxies return raw data
+    if (Array.isArray(account.data) || typeof account.data !== 'object') continue;
     // Skip accounts that couldn't be parsed
     if (!account.data.parsed?.info) continue;
     const parsed = account.data.parsed.info;
