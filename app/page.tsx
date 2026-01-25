@@ -450,6 +450,14 @@ export default function Home() {
         <div className="w-full max-w-lg">
           {/* Header */}
           <div className="text-center mb-6">
+            <div className="flex justify-center mb-3">
+              <img
+                src="https://assets.masko.ai/665d67/solby-34ff/wave-2fe2bfb6.png"
+                alt="Freeya mascot"
+                className="w-20 h-20 sm:w-24 sm:h-24 animate-bounce"
+                style={{ animationDuration: '2s' }}
+              />
+            </div>
             <h1 className="text-5xl sm:text-6xl font-bold glow-text mb-2 font-display">Free Rent</h1>
             <p className="text-gray-400 text-sm sm:text-base mb-1">Get your money back</p>
             <p className="text-cyan-500 text-xs sm:text-sm font-medium">freerent.money</p>
