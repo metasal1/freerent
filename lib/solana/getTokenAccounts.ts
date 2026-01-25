@@ -16,6 +16,44 @@ export interface TokenAccountInfo {
   burnBlockedReason?: string;
 }
 
+async function fetchParsedTokenAccounts(
+  connection: Connection,
+  owner: PublicKey,
+  programId: PublicKey
+): Promise<{ pubkey: PublicKey; account: any }[]> {
+  try {
+    const response = await connection.getParsedTokenAccountsByOwner(owner, { programId });
+    return response.value;
+  } catch (error: any) {
+    // Some accounts return base64 data which causes validation errors in web3.js
+    // Fall back to fetching raw accounts and filter out unparsed ones
+    if (error.message?.includes('Expected an object') || error.message?.includes('base64')) {
+      console.warn(`Falling back to raw fetch for ${programId.toBase58()} due to base64 data`);
+      try {
+        // Use RPC directly to avoid web3.js validation
+        const rpcResponse = await (connection as any)._rpcRequest('getTokenAccountsByOwner', [
+          owner.toBase58(),
+          { programId: programId.toBase58() },
+          { encoding: 'jsonParsed' }
+        ]);
+        if (rpcResponse.result?.value) {
+          // Filter to only include accounts with parsed data
+          return rpcResponse.result.value
+            .filter((item: any) => item.account?.data?.parsed?.info)
+            .map((item: any) => ({
+              pubkey: new PublicKey(item.pubkey),
+              account: item.account
+            }));
+        }
+      } catch {
+        // If raw RPC also fails, return empty
+      }
+      return [];
+    }
+    throw error;
+  }
+}
+
 export async function getTokenAccounts(
   connection: Connection,
   owner: PublicKey
@@ -24,12 +62,12 @@ export async function getTokenAccounts(
 
   // Fetch from both Token Program and Token-2022
   const [tokenAccounts, token2022Accounts] = await Promise.all([
-    connection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID }),
-    connection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_2022_PROGRAM_ID }),
+    fetchParsedTokenAccounts(connection, owner, TOKEN_PROGRAM_ID),
+    fetchParsedTokenAccounts(connection, owner, TOKEN_2022_PROGRAM_ID),
   ]);
 
   // Process Token Program accounts (standard SPL)
-  for (const { pubkey, account } of tokenAccounts.value) {
+  for (const { pubkey, account } of tokenAccounts) {
     // Skip accounts with base64 data (not parsed) - some RPC proxies return raw data
     if (Array.isArray(account.data) || typeof account.data !== 'object') continue;
     // Skip accounts that couldn't be parsed
@@ -92,7 +130,7 @@ export async function getTokenAccounts(
   }
 
   // Process Token-2022 accounts (may have extensions that block closing)
-  for (const { pubkey, account } of token2022Accounts.value) {
+  for (const { pubkey, account } of token2022Accounts) {
     // Skip accounts with base64 data (not parsed) - some RPC proxies return raw data
     if (Array.isArray(account.data) || typeof account.data !== 'object') continue;
     // Skip accounts that couldn't be parsed
