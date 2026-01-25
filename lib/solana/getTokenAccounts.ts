@@ -23,10 +23,37 @@ export async function getTokenAccounts(
   const accounts: TokenAccountInfo[] = [];
 
   // Fetch from both Token Program and Token-2022
-  const [tokenAccounts, token2022Accounts] = await Promise.all([
-    connection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID }),
-    connection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_2022_PROGRAM_ID }),
-  ]);
+  // Wrap in try-catch to handle wallet extensions (like Jupiter) that may
+  // intercept RPC calls and return base64-encoded data instead of parsed objects
+  let tokenAccounts: Awaited<ReturnType<typeof connection.getParsedTokenAccountsByOwner>> = { context: { slot: 0 }, value: [] };
+  let token2022Accounts: Awaited<ReturnType<typeof connection.getParsedTokenAccountsByOwner>> = { context: { slot: 0 }, value: [] };
+
+  try {
+    [tokenAccounts, token2022Accounts] = await Promise.all([
+      connection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID }),
+      connection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_2022_PROGRAM_ID }),
+    ]);
+  } catch (e: any) {
+    // If parsing fails (e.g., due to wallet extension like Jupiter returning base64 data),
+    // create a fresh connection that bypasses the wallet extension proxy
+    const errorMessage = e?.message || String(e);
+    if (errorMessage.includes('Expected an object') && errorMessage.includes('base64')) {
+      console.warn('Wallet extension returned unparseable data, creating direct RPC connection...');
+      // Create a fresh connection directly to the RPC endpoint to bypass wallet extension proxy
+      const directConnection = new Connection(connection.rpcEndpoint, 'confirmed');
+      try {
+        [tokenAccounts, token2022Accounts] = await Promise.all([
+          directConnection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID }),
+          directConnection.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_2022_PROGRAM_ID }),
+        ]);
+      } catch (fallbackError: any) {
+        console.error('Fallback RPC also failed:', fallbackError?.message);
+        throw new Error('Unable to fetch token accounts. Your wallet extension may be interfering with RPC calls. Try using a different wallet or browser.');
+      }
+    } else {
+      throw e;
+    }
+  }
 
   // Process Token Program accounts (standard SPL)
   for (const { pubkey, account } of tokenAccounts.value) {
