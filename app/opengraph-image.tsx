@@ -16,6 +16,11 @@ export default async function Image() {
   const fontPath = join(process.cwd(), "app/fonts/SpaceGrotesk-Bold.woff");
   const fontData = await readFile(fontPath);
 
+  // Load mascot image
+  const mascotPath = join(process.cwd(), "public/freeby.png");
+  const mascotData = await readFile(mascotPath);
+  const mascotBase64 = `data:image/png;base64,${mascotData.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -42,14 +47,25 @@ export default async function Image() {
           }}
         />
 
+        {/* Mascot */}
+        <img
+          src={mascotBase64}
+          alt="Freeby"
+          width={180}
+          height={180}
+          style={{
+            marginBottom: 20,
+          }}
+        />
+
         {/* Title */}
         <div
           style={{
-            fontSize: 120,
+            fontSize: 100,
             fontWeight: 700,
             color: "#22d3ee",
             textShadow: "0 0 60px rgba(34, 211, 238, 0.8), 0 0 120px rgba(34, 211, 238, 0.4)",
-            marginBottom: 20,
+            marginBottom: 10,
             letterSpacing: "-0.02em",
             fontFamily: "Space Grotesk",
           }}
@@ -60,9 +76,9 @@ export default async function Image() {
         {/* Tagline */}
         <div
           style={{
-            fontSize: 42,
+            fontSize: 36,
             color: "#9ca3af",
-            marginBottom: 12,
+            marginBottom: 8,
             fontWeight: 500,
           }}
         >
@@ -72,7 +88,7 @@ export default async function Image() {
         {/* Domain */}
         <div
           style={{
-            fontSize: 32,
+            fontSize: 28,
             color: "#22d3ee",
             fontWeight: 700,
             fontFamily: "Space Grotesk",
@@ -84,9 +100,9 @@ export default async function Image() {
         {/* Description */}
         <div
           style={{
-            fontSize: 26,
+            fontSize: 22,
             color: "#6b7280",
-            marginTop: 50,
+            marginTop: 30,
             textAlign: "center",
             maxWidth: 900,
           }}
