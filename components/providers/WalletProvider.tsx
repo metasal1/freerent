@@ -10,7 +10,7 @@ import {
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://cassandra-bq5oqs-fast-mainnet.helius-rpc.com/";
+const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(
