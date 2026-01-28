@@ -12,7 +12,7 @@ import { buildBurnAccountsTransaction } from "@/lib/solana/burnTokens";
 import { FEE_PERCENT, MAX_ACCOUNTS_PER_TX, MAX_ACCOUNTS_PER_BURN_TX, DUST_THRESHOLD_USD } from "@/lib/solana/constants";
 import { getTokenMetadata, TokenMetadata, calculateTokenValue } from "@/lib/jupiter/getTokenMetadata";
 
-const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://cassandra-bq5oqs-fast-mainnet.helius-rpc.com/";
+const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 export default function Home() {
   const connection = useMemo(() => new Connection(RPC_ENDPOINT, "confirmed"), []);
