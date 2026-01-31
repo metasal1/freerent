@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Analytics } from "@vercel/analytics/next";
@@ -47,6 +48,11 @@ export default function RootLayout({
       <body className="antialiased">
         <ClientProviders>{children}</ClientProviders>
         <Analytics />
+        <Script
+          src="https://stats.sal.fun/script.js"
+          data-website-id="3904cc9b-7770-4549-a3b3-db3ed9414789"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
