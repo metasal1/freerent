@@ -3,7 +3,6 @@ import { Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
-import { Analytics } from "@vercel/analytics/next";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-2KKTKDHD39";
 
@@ -81,7 +80,6 @@ export default function RootLayout({
     <html lang="en" className={spaceGrotesk.variable}>
       <body className="antialiased">
         <ClientProviders>{children}</ClientProviders>
-        <Analytics />
         {GA_ID && (
           <>
             <Script

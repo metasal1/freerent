@@ -13,13 +13,14 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
   experimental: {
+    cpus: 1,
     serverActions: {
-      allowedOrigins: ["localhost:3000"],
+      allowedOrigins: ["localhost:3000", "freerent.money", "www.freerent.money"],
     },
   },
   env: {
     NEXT_PUBLIC_BUILD_ID: gitHash,
-    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString().split('T')[0],
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString().split("T")[0],
   },
 };
 

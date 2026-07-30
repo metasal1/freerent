@@ -38,3 +38,6 @@ next-env.d.ts
 # Misc
 *.pem
 .vercel
+.open-next/
+.wrangler/
+.dev.vars
