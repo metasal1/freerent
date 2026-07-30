@@ -9,8 +9,9 @@ import {
 } from "@solana/wallet-adapter-wallets";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
+import { getSolanaRpcUrl } from "@/lib/solana/rpc";
 
-const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const RPC_ENDPOINT = getSolanaRpcUrl();
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(

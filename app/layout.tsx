@@ -12,6 +12,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://freerent.money"),
   title: "Free Rent - Get Your Money Back",
   description: "Free your rent! Close unused Solana token accounts and get your SOL back. Gas-free transactions.",
   keywords: ["Solana", "rent", "token accounts", "crypto", "SOL", "free", "reclaim"],
@@ -20,15 +21,14 @@ export const metadata: Metadata = {
     description: "Free your rent! Close unused Solana token accounts and get your SOL back.",
     siteName: "Free Rent",
     type: "website",
+    url: "https://freerent.money",
   },
   twitter: {
     card: "summary_large_image",
     title: "Free Rent - Get Your Money Back",
     description: "Free your rent! Close unused Solana token accounts and get your SOL back.",
   },
-  icons: {
-    icon: "/icon.svg",
-  },
+  // app/icon.png + app/apple-icon.png are auto-discovered by Next.js
 };
 
 export const viewport: Viewport = {

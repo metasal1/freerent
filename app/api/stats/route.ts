@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getGlobalStats, getWalletStats, initDatabase } from "@/lib/db/turso";
+import { getSolanaRpcUrl } from "@/lib/solana/rpc";
 
-const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const RPC_ENDPOINT = getSolanaRpcUrl();
 const FEE_RECIPIENT = "va1TBuMdfdgHUb3fYA79CfFQPFf3KQ3k86n5dp4hHRr";
 
 let dbInitialized = false;

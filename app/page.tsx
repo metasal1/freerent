@@ -11,8 +11,10 @@ import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { buildBurnAccountsTransaction } from "@/lib/solana/burnTokens";
 import { FEE_PERCENT, MAX_ACCOUNTS_PER_TX, MAX_ACCOUNTS_PER_BURN_TX, DUST_THRESHOLD_USD } from "@/lib/solana/constants";
 import { getTokenMetadata, TokenMetadata, calculateTokenValue } from "@/lib/jupiter/getTokenMetadata";
+import { getSolanaRpcUrl } from "@/lib/solana/rpc";
+import { bytesToBase64 } from "@/lib/utils/base64";
 
-const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const RPC_ENDPOINT = getSolanaRpcUrl();
 
 export default function Home() {
   const connection = useMemo(() => new Connection(RPC_ENDPOINT, "confirmed"), []);
@@ -190,7 +192,7 @@ export default function Home() {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
 
       const signedTx = await signTransaction(transaction);
-      const serialized = Buffer.from(signedTx.serialize({ requireAllSignatures: false })).toString("base64");
+      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
 
       const sponsorRes = await fetch("/api/sponsor", {
         method: "POST",
@@ -253,7 +255,7 @@ export default function Home() {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
 
       const signedTx = await signTransaction(transaction);
-      const serialized = Buffer.from(signedTx.serialize({ requireAllSignatures: false })).toString("base64");
+      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
 
       const sponsorRes = await fetch("/api/sponsor", {
         method: "POST",
@@ -316,7 +318,7 @@ export default function Home() {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
 
       const signedTx = await signTransaction(transaction);
-      const serialized = Buffer.from(signedTx.serialize({ requireAllSignatures: false })).toString("base64");
+      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
 
       const sponsorRes = await fetch("/api/sponsor", {
         method: "POST",
