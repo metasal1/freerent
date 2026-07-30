@@ -1,27 +1,124 @@
-import { createClient, Client } from "@libsql/client";
+// Raw fetch Turso /v2/pipeline — works on CF Workers (no @libsql/client)
 
-let client: Client | null = null;
+type TursoCell = {
+  type?: string;
+  value?: string | number | null;
+  base64?: string;
+};
 
-// Only create client if URL is provided
-if (process.env.TURSO_DATABASE_URL) {
-  client = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN || "",
+type TursoRow = Record<string, string | number | null>;
+
+type TursoArg =
+  | { type: "null" }
+  | { type: "integer"; value: string }
+  | { type: "float"; value: number }
+  | { type: "text"; value: string };
+
+function hasTurso(): boolean {
+  return !!(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN);
+}
+
+export function isDatabaseAvailable(): boolean {
+  return hasTurso();
+}
+
+function getTursoConfig() {
+  const url = process.env.TURSO_DATABASE_URL;
+  const token = process.env.TURSO_AUTH_TOKEN;
+  if (!url || !token) throw new Error("TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set");
+  return { url: url.replace("libsql://", "https://"), token };
+}
+
+function unwrapCell(cell: TursoCell | string | number | null): string | number | null {
+  if (cell == null) return null;
+  if (typeof cell !== "object") return cell;
+  const t = cell.type;
+  const v = cell.value;
+  if (v == null && cell.base64 == null) return null;
+  if (t === "null") return null;
+  if (t === "integer" || t === "float") {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return v == null ? null : String(v);
+}
+
+function toArg(a: string | number | null): TursoArg {
+  if (a === null) return { type: "null" };
+  if (typeof a === "number") {
+    if (!Number.isFinite(a)) return { type: "null" };
+    if (Number.isInteger(a) && Math.abs(a) <= Number.MAX_SAFE_INTEGER) {
+      return { type: "integer", value: String(Math.trunc(a)) };
+    }
+    return { type: "float", value: a };
+  }
+  return { type: "text", value: String(a) };
+}
+
+async function execute(
+  sql: string,
+  args: (string | number | null)[] = []
+): Promise<TursoRow[]> {
+  const { url, token } = getTursoConfig();
+  const res = await fetch(`${url}/v2/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [
+        {
+          type: "execute",
+          stmt: { sql, args: args.map(toArg) },
+        },
+        { type: "close" },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Turso pipeline error ${res.status}: ${await res.text()}`);
+  }
+
+  const data = (await res.json()) as {
+    results: {
+      type: string;
+      response?: {
+        type: string;
+        result?: {
+          cols: { name: string }[];
+          rows: (TursoCell | string | number | null)[][];
+        };
+      };
+      error?: { message?: string };
+    }[];
+  };
+
+  for (const r of data.results || []) {
+    if (r.type === "error") {
+      throw new Error(r.error?.message || "Turso execute error");
+    }
+  }
+
+  const exec = (data.results || []).find(
+    (r) => r.type === "ok" && r.response?.type === "execute"
+  );
+  if (!exec?.response?.result) return [];
+
+  const cols = exec.response.result.cols.map((c) => c.name);
+  return (exec.response.result.rows || []).map((row) => {
+    const obj: TursoRow = {};
+    cols.forEach((col, i) => {
+      obj[col] = unwrapCell(row[i] as TursoCell);
+    });
+    return obj;
   });
 }
 
-export { client as turso };
-
-// Check if database is available
-export function isDatabaseAvailable(): boolean {
-  return client !== null;
-}
-
-// Initialize database schema
 export async function initDatabase() {
-  if (!client) return;
-
-  await client.execute(`
+  if (!hasTurso()) return;
+  await execute(`
     CREATE TABLE IF NOT EXISTS stats (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       wallet_address TEXT NOT NULL,
@@ -31,8 +128,7 @@ export async function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-
-  await client.execute(`
+  await execute(`
     CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_type TEXT NOT NULL,
@@ -43,27 +139,17 @@ export async function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-
-  await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_events_wallet ON events(wallet_address)
-  `);
-
-  await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)
-  `);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_events_wallet ON events(wallet_address)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`);
 }
 
-// Log a wallet connection
 export async function logConnect(walletAddress: string) {
-  if (!client) return;
-
-  await client.execute({
-    sql: `INSERT INTO events (event_type, wallet_address) VALUES ('connect', ?)`,
-    args: [walletAddress],
-  });
+  if (!hasTurso()) return;
+  await execute(`INSERT INTO events (event_type, wallet_address) VALUES ('connect', ?)`, [
+    walletAddress,
+  ]);
 }
 
-// Log account closing
 export async function logClose(
   walletAddress: string,
   txSignature: string,
@@ -71,40 +157,33 @@ export async function logClose(
   rentAmount: number,
   feePaid: number
 ) {
-  if (!client) return;
-
-  // Insert event
-  await client.execute({
-    sql: `INSERT INTO events (event_type, wallet_address, tx_signature, accounts_count, rent_amount)
-          VALUES ('close', ?, ?, ?, ?)`,
-    args: [walletAddress, txSignature, accountsCount, rentAmount],
-  });
-
-  // Upsert stats
-  const existing = await client.execute({
-    sql: `SELECT id FROM stats WHERE wallet_address = ?`,
-    args: [walletAddress],
-  });
-
-  if (existing.rows.length > 0) {
-    await client.execute({
-      sql: `UPDATE stats
-            SET accounts_closed = accounts_closed + ?,
-                rent_recovered = rent_recovered + ?,
-                fee_paid = fee_paid + ?
-            WHERE wallet_address = ?`,
-      args: [accountsCount, rentAmount, feePaid, walletAddress],
-    });
+  if (!hasTurso()) return;
+  await execute(
+    `INSERT INTO events (event_type, wallet_address, tx_signature, accounts_count, rent_amount)
+     VALUES ('close', ?, ?, ?, ?)`,
+    [walletAddress, txSignature, accountsCount, rentAmount]
+  );
+  const existing = await execute(`SELECT id FROM stats WHERE wallet_address = ?`, [
+    walletAddress,
+  ]);
+  if (existing.length > 0) {
+    await execute(
+      `UPDATE stats
+       SET accounts_closed = accounts_closed + ?,
+           rent_recovered = rent_recovered + ?,
+           fee_paid = fee_paid + ?
+       WHERE wallet_address = ?`,
+      [accountsCount, rentAmount, feePaid, walletAddress]
+    );
   } else {
-    await client.execute({
-      sql: `INSERT INTO stats (wallet_address, accounts_closed, rent_recovered, fee_paid)
-            VALUES (?, ?, ?, ?)`,
-      args: [walletAddress, accountsCount, rentAmount, feePaid],
-    });
+    await execute(
+      `INSERT INTO stats (wallet_address, accounts_closed, rent_recovered, fee_paid)
+       VALUES (?, ?, ?, ?)`,
+      [walletAddress, accountsCount, rentAmount, feePaid]
+    );
   }
 }
 
-// Log token burning
 export async function logBurn(
   walletAddress: string,
   txSignature: string,
@@ -112,42 +191,35 @@ export async function logBurn(
   rentAmount: number,
   feePaid: number
 ) {
-  if (!client) return;
-
-  // Insert event
-  await client.execute({
-    sql: `INSERT INTO events (event_type, wallet_address, tx_signature, accounts_count, rent_amount)
-          VALUES ('burn', ?, ?, ?, ?)`,
-    args: [walletAddress, txSignature, accountsCount, rentAmount],
-  });
-
-  // Upsert stats (burn also closes accounts and recovers rent)
-  const existing = await client.execute({
-    sql: `SELECT id FROM stats WHERE wallet_address = ?`,
-    args: [walletAddress],
-  });
-
-  if (existing.rows.length > 0) {
-    await client.execute({
-      sql: `UPDATE stats
-            SET accounts_closed = accounts_closed + ?,
-                rent_recovered = rent_recovered + ?,
-                fee_paid = fee_paid + ?
-            WHERE wallet_address = ?`,
-      args: [accountsCount, rentAmount, feePaid, walletAddress],
-    });
+  if (!hasTurso()) return;
+  await execute(
+    `INSERT INTO events (event_type, wallet_address, tx_signature, accounts_count, rent_amount)
+     VALUES ('burn', ?, ?, ?, ?)`,
+    [walletAddress, txSignature, accountsCount, rentAmount]
+  );
+  const existing = await execute(`SELECT id FROM stats WHERE wallet_address = ?`, [
+    walletAddress,
+  ]);
+  if (existing.length > 0) {
+    await execute(
+      `UPDATE stats
+       SET accounts_closed = accounts_closed + ?,
+           rent_recovered = rent_recovered + ?,
+           fee_paid = fee_paid + ?
+       WHERE wallet_address = ?`,
+      [accountsCount, rentAmount, feePaid, walletAddress]
+    );
   } else {
-    await client.execute({
-      sql: `INSERT INTO stats (wallet_address, accounts_closed, rent_recovered, fee_paid)
-            VALUES (?, ?, ?, ?)`,
-      args: [walletAddress, accountsCount, rentAmount, feePaid],
-    });
+    await execute(
+      `INSERT INTO stats (wallet_address, accounts_closed, rent_recovered, fee_paid)
+       VALUES (?, ?, ?, ?)`,
+      [walletAddress, accountsCount, rentAmount, feePaid]
+    );
   }
 }
 
-// Get global statistics
 export async function getGlobalStats() {
-  if (!client) {
+  if (!hasTurso()) {
     return {
       uniqueWallets: 0,
       totalAccountsClosed: 0,
@@ -155,8 +227,7 @@ export async function getGlobalStats() {
       totalFees: 0,
     };
   }
-
-  const result = await client.execute(`
+  const rows = await execute(`
     SELECT
       COUNT(DISTINCT wallet_address) as unique_wallets,
       SUM(accounts_closed) as total_accounts_closed,
@@ -164,8 +235,7 @@ export async function getGlobalStats() {
       SUM(fee_paid) as total_fees
     FROM stats
   `);
-
-  const row = result.rows[0];
+  const row = rows[0] || {};
   return {
     uniqueWallets: Number(row.unique_wallets) || 0,
     totalAccountsClosed: Number(row.total_accounts_closed) || 0,
@@ -174,25 +244,21 @@ export async function getGlobalStats() {
   };
 }
 
-// Get wallet-specific stats
 export async function getWalletStats(walletAddress: string) {
-  if (!client) {
+  if (!hasTurso()) {
     return { accountsClosed: 0, rentRecovered: 0, feePaid: 0 };
   }
-
-  const result = await client.execute({
-    sql: `SELECT accounts_closed, rent_recovered, fee_paid FROM stats WHERE wallet_address = ?`,
-    args: [walletAddress],
-  });
-
-  if (result.rows.length === 0) {
+  const rows = await execute(
+    `SELECT accounts_closed, rent_recovered, fee_paid FROM stats WHERE wallet_address = ?`,
+    [walletAddress]
+  );
+  if (rows.length === 0) {
     return { accountsClosed: 0, rentRecovered: 0, feePaid: 0 };
   }
-
-  const row = result.rows[0];
+  const row = rows[0];
   return {
-    accountsClosed: Number(row.accounts_closed),
-    rentRecovered: Number(row.rent_recovered),
-    feePaid: Number(row.fee_paid),
+    accountsClosed: Number(row.accounts_closed) || 0,
+    rentRecovered: Number(row.rent_recovered) || 0,
+    feePaid: Number(row.fee_paid) || 0,
   };
 }

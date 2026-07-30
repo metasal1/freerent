@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { track } from "@vercel/analytics";
+import { track } from "@/lib/analytics";
 import { getTokenAccounts, TokenAccountInfo } from "@/lib/solana/getTokenAccounts";
 import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { buildBurnAccountsTransaction } from "@/lib/solana/burnTokens";
