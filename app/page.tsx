@@ -5,7 +5,6 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { track } from "@vercel/analytics";
-import { Tweet } from "react-tweet";
 import { getTokenAccounts, TokenAccountInfo } from "@/lib/solana/getTokenAccounts";
 import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { buildBurnAccountsTransaction } from "@/lib/solana/burnTokens";
@@ -13,6 +12,7 @@ import { FEE_PERCENT, MAX_ACCOUNTS_PER_TX, MAX_ACCOUNTS_PER_BURN_TX, DUST_THRESH
 import { getTokenMetadata, TokenMetadata, calculateTokenValue } from "@/lib/jupiter/getTokenMetadata";
 import { getSolanaRpcUrl } from "@/lib/solana/rpc";
 import { bytesToBase64 } from "@/lib/utils/base64";
+import { SafeTweet } from "@/components/SafeTweet";
 
 const RPC_ENDPOINT = getSolanaRpcUrl();
 
@@ -829,7 +829,7 @@ export default function Home() {
       <footer className="border-t border-gray-800/50 py-6 text-center">
         {!connected && (
           <div className="max-w-lg mx-auto mb-6 px-4" data-theme="dark">
-            <Tweet id="2015243704777490639" />
+            <SafeTweet id="2015243704777490639" />
           </div>
         )}
         <p className="text-gray-600 text-xs mb-1">Gas-free • tx cost + {FEE_PERCENT}% fee</p>
