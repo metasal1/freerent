@@ -3,8 +3,10 @@ import bs58 from "bs58";
 import { Transaction, PublicKey, SystemProgram, Connection } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAccount, TokenAccountNotFoundError } from "@solana/spl-token";
 
+import { getSolanaRpcUrl } from "@/lib/solana/rpc";
+
 const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.up.railway.app";
-const SOLANA_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const SOLANA_RPC = getSolanaRpcUrl();
 
 // Jito RPC endpoints for sending transactions (not bundles - bundles require tips)
 // These provide better landing rates without needing tip transactions
