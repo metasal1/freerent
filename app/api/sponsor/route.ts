@@ -33,6 +33,20 @@ const TOKEN_CLOSE_ACCOUNT_DISCRIMINATOR = 9;
 // System Program transfer discriminator (little-endian u32)
 const SYSTEM_TRANSFER_DISCRIMINATOR = 2;
 
+// Programs Kora allows that we do not specially inspect (wallet may inject Lighthouse,
+// ATA, ALT, compute budget, etc.). Keep in sync with Kora getConfig.allowed_programs.
+const ALLOWED_PASSTHROUGH_PROGRAMS = new Set([
+  "ComputeBudget111111111111111111111111111111",
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", // Associated Token
+  "AddressLookupTab1e1111111111111111111111111",
+  "L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95", // Lighthouse (wallet safety ix)
+  "cTokenmWW8bLPjZEBAUgYy3zKxQZW6VKi7bqNFEVv3m",
+  "SySTEM1eSU2p4BGQfQpimFEWWSC1XDFeun3Nqzz3rT7",
+  "cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK",
+  "noopb9bkMVfRPU8AsBHBnXkQjtA4gwfLW3HMCshLAqB",
+  "7Z9Yuy3HkBCc2Wf3xzMGnz6qpV4n7ciwcoEMGKqhAnj1",
+]);
+
 // Maximum allowed fee (10 SOL - way more than any legitimate tx would need)
 const MAX_FEE_LAMPORTS = 10 * 1e9;
 
@@ -155,9 +169,8 @@ async function validateTransaction(base64Tx: string): Promise<ValidationResult> 
         };
       }
 
-      // Check for Compute Budget program (allowed for setting compute units)
-      if (programId === "ComputeBudget111111111111111111111111111111") {
-        // Compute budget instructions are allowed
+      // Passthrough: compute budget, Lighthouse (wallet-injected), ATA, ALT, etc.
+      if (ALLOWED_PASSTHROUGH_PROGRAMS.has(programId)) {
         continue;
       }
 
