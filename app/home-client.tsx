@@ -10,14 +10,15 @@ import { buildCloseAccountsTransaction } from "@/lib/solana/closeAccounts";
 import { buildBurnAccountsTransaction } from "@/lib/solana/burnTokens";
 import { FEE_PERCENT, MAX_ACCOUNTS_PER_TX, MAX_ACCOUNTS_PER_BURN_TX, DUST_THRESHOLD_USD } from "@/lib/solana/constants";
 import { getTokenMetadata, TokenMetadata, calculateTokenValue } from "@/lib/jupiter/getTokenMetadata";
-import { getSolanaRpcUrl } from "@/lib/solana/rpc";
+import { getClientRpcUrl } from "@/lib/solana/rpc";
 import { bytesToBase64 } from "@/lib/utils/base64";
 import { SafeTweet } from "@/components/SafeTweet";
 
-const RPC_ENDPOINT = getSolanaRpcUrl();
-
 export default function HomeClient() {
-  const connection = useMemo(() => new Connection(RPC_ENDPOINT, "confirmed"), []);
+  const connection = useMemo(
+    () => new Connection(getClientRpcUrl(), "confirmed"),
+    []
+  );
   const { publicKey, signTransaction, connected, disconnect, connecting } = useWallet();
   const { setVisible } = useWalletModal();
   const connect = () => setVisible(true);
