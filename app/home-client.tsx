@@ -129,6 +129,47 @@ export default function HomeClient() {
       .catch(() => {});
   };
 
+  const resolveFeePayer = async (): Promise<{ sponsored: boolean; feePayer: PublicKey }> => {
+    if (!publicKey) throw new Error("Wallet not connected");
+    try {
+      const res = await fetch("/api/sponsor");
+      const j = await res.json();
+      if (j.sponsored && j.feePayer) {
+        return { sponsored: true, feePayer: new PublicKey(j.feePayer) };
+      }
+    } catch {
+      /* Kora down */
+    }
+    return { sponsored: false, feePayer: publicKey };
+  };
+
+  const signAndSend = async (transaction: ReturnType<typeof buildCloseAccountsTransaction>["transaction"], sponsored: boolean): Promise<string> => {
+    if (!signTransaction) throw new Error("Wallet cannot sign");
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.lastValidBlockHeight = lastValidBlockHeight;
+    const signedTx = await signTransaction(transaction);
+
+    if (sponsored) {
+      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
+      const sponsorRes = await fetch("/api/sponsor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transaction: serialized }),
+      });
+      if (!sponsorRes.ok) {
+        const err = await sponsorRes.json().catch(() => ({}));
+        throw new Error(err.error || "Transaction failed");
+      }
+      const { signature } = await sponsorRes.json();
+      return signature as string;
+    }
+
+    const sig = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: false });
+    await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
+    return sig;
+  };
+
   useEffect(() => {
     refreshStats();
   }, []);
@@ -180,33 +221,11 @@ export default function HomeClient() {
     setTxResult(null);
 
     try {
-      const feePayerRes = await fetch("/api/sponsor");
-      const { feePayer } = await feePayerRes.json();
-      const feePayerPubkey = new PublicKey(feePayer);
-
+      const { sponsored, feePayer } = await resolveFeePayer();
       const { transaction, estimatedRent, fee: txFee, netRent: txNetRent } = buildCloseAccountsTransaction(
-        closeable, publicKey, feePayerPubkey
+        closeable, publicKey, feePayer
       );
-
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.lastValidBlockHeight = lastValidBlockHeight;
-
-      const signedTx = await signTransaction(transaction);
-      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
-
-      const sponsorRes = await fetch("/api/sponsor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transaction: serialized }),
-      });
-
-      if (!sponsorRes.ok) {
-        const err = await sponsorRes.json();
-        throw new Error(err.error || "Transaction failed");
-      }
-
-      const { signature } = await sponsorRes.json();
+      const signature = await signAndSend(transaction, sponsored);
       setTxResult({ signature, count: closeable.length, amount: txNetRent });
       setSelectedIds(new Set());
 
@@ -243,33 +262,11 @@ export default function HomeClient() {
     setTxResult(null);
 
     try {
-      const feePayerRes = await fetch("/api/sponsor");
-      const { feePayer } = await feePayerRes.json();
-      const feePayerPubkey = new PublicKey(feePayer);
-
+      const { sponsored, feePayer } = await resolveFeePayer();
       const { transaction, estimatedRent, fee: txFee, netRent: txNetRent } = buildCloseAccountsTransaction(
-        selectedAccounts, publicKey, feePayerPubkey
+        selectedAccounts, publicKey, feePayer
       );
-
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.lastValidBlockHeight = lastValidBlockHeight;
-
-      const signedTx = await signTransaction(transaction);
-      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
-
-      const sponsorRes = await fetch("/api/sponsor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transaction: serialized }),
-      });
-
-      if (!sponsorRes.ok) {
-        const err = await sponsorRes.json();
-        throw new Error(err.error || "Transaction failed");
-      }
-
-      const { signature } = await sponsorRes.json();
+      const signature = await signAndSend(transaction, sponsored);
       setTxResult({ signature, count: selectedAccounts.length, amount: txNetRent });
       setSelectedIds(new Set());
 
@@ -306,33 +303,11 @@ export default function HomeClient() {
     setTxResult(null);
 
     try {
-      const feePayerRes = await fetch("/api/sponsor");
-      const { feePayer } = await feePayerRes.json();
-      const feePayerPubkey = new PublicKey(feePayer);
-
+      const { sponsored, feePayer } = await resolveFeePayer();
       const { transaction, estimatedRent, fee: txFee, netRent: txNetRent, tokensDestroyed } = buildBurnAccountsTransaction(
-        selectedAccounts, publicKey, feePayerPubkey
+        selectedAccounts, publicKey, feePayer
       );
-
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.lastValidBlockHeight = lastValidBlockHeight;
-
-      const signedTx = await signTransaction(transaction);
-      const serialized = bytesToBase64(signedTx.serialize({ requireAllSignatures: false }));
-
-      const sponsorRes = await fetch("/api/sponsor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transaction: serialized }),
-      });
-
-      if (!sponsorRes.ok) {
-        const err = await sponsorRes.json();
-        throw new Error(err.error || "Transaction failed");
-      }
-
-      const { signature } = await sponsorRes.json();
+      const signature = await signAndSend(transaction, sponsored);
       setTxResult({ signature, count: selectedAccounts.length, amount: txNetRent });
       setSelectedIds(new Set());
 
