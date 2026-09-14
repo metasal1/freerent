@@ -1,9 +1,6 @@
-/** Shared RPC endpoint resolution (client + server). */
+import { mainnetRpcEndpoints } from "./rpc-pool";
 
-/**
- * Browser / wallet-adapter endpoint: same-origin proxy.
- * Relative URL is fine for web3.js in the browser and avoids SSR host issues.
- */
+/** Browser / wallet-adapter: same-origin proxy. */
 export function getClientRpcUrl(): string {
   if (typeof window !== "undefined") {
     return `${window.location.origin}/api/rpc`;
@@ -11,14 +8,7 @@ export function getClientRpcUrl(): string {
   return "/api/rpc";
 }
 
-/**
- * Server-side upstream RPC (sponsor, stats, /api/rpc proxy target).
- */
+/** Server-side primary RPC (sponsor/stats). Not aex402. */
 export function getSolanaRpcUrl(): string {
-  return (
-    process.env.SOLANA_RPC_URL ||
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-    process.env.NEXT_PUBLIC_SOLANA_RPC ||
-    "https://rpc.aex402.com/"
-  );
+  return mainnetRpcEndpoints()[0];
 }
