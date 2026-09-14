@@ -437,7 +437,29 @@ async function waitForConfirmation(
 }
 
 export async function GET() {
-  return NextResponse.json({ feePayer: KORA_FEE_PAYER });
+  let sponsored = false;
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 4000);
+    const r = await fetch(KORA_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getConfig", params: [] }),
+      signal: ac.signal,
+    });
+    clearTimeout(t);
+    if (r.ok) {
+      const j = await r.json();
+      sponsored = Boolean(j?.result?.fee_payers?.length);
+    }
+  } catch {
+    sponsored = false;
+  }
+
+  return NextResponse.json({
+    sponsored,
+    feePayer: sponsored ? KORA_FEE_PAYER : null,
+  });
 }
 
 export async function POST(request: NextRequest) {
