@@ -22,7 +22,7 @@ A Solana account closing app that helps users reclaim rent from unused token acc
 
 ### Gas Sponsorship
 - Kora integration for feeless transactions
-- Endpoint: `kora.up.railway.app`
+- Endpoint: `https://kora.sol.new`
 - Docs: https://launch.solana.com/products/kora
 
 ### Revenue Model
@@ -95,6 +95,6 @@ CREATE TABLE events (
 ```
 TURSO_DATABASE_URL=libsql://rentclaim-metasal1.aws-ap-northeast-1.turso.io
 TURSO_AUTH_TOKEN=<your-token>
-KORA_ENDPOINT=https://kora.up.railway.app
+KORA_ENDPOINT=https://kora.sol.new
 FEE_RECIPIENT=MTSLZDJppGh6xUcnrSSbSQE5fgbvCtQ496MqgQTv8c1
 ```

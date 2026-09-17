@@ -1,6 +1,6 @@
 import { Transaction, VersionedTransaction } from "@solana/web3.js";
 
-const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.up.railway.app";
+const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.sol.new";
 
 export interface SponsorResponse {
   success: boolean;

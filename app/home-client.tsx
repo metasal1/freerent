@@ -223,7 +223,7 @@ export default function HomeClient() {
     try {
       const { sponsored, feePayer } = await resolveFeePayer();
       const { transaction, estimatedRent, fee: txFee, netRent: txNetRent } = buildCloseAccountsTransaction(
-        closeable, publicKey, feePayer
+        closeable, publicKey, feePayer, { skipFee: sponsored }
       );
       const signature = await signAndSend(transaction, sponsored);
       setTxResult({ signature, count: closeable.length, amount: txNetRent });
@@ -264,7 +264,7 @@ export default function HomeClient() {
     try {
       const { sponsored, feePayer } = await resolveFeePayer();
       const { transaction, estimatedRent, fee: txFee, netRent: txNetRent } = buildCloseAccountsTransaction(
-        selectedAccounts, publicKey, feePayer
+        selectedAccounts, publicKey, feePayer, { skipFee: sponsored }
       );
       const signature = await signAndSend(transaction, sponsored);
       setTxResult({ signature, count: selectedAccounts.length, amount: txNetRent });
@@ -303,11 +303,11 @@ export default function HomeClient() {
     setTxResult(null);
 
     try {
-      const { sponsored, feePayer } = await resolveFeePayer();
+      // Kora.sol.new policy: allow_burn=false — burn always self-pay
       const { transaction, estimatedRent, fee: txFee, netRent: txNetRent, tokensDestroyed } = buildBurnAccountsTransaction(
-        selectedAccounts, publicKey, feePayer
+        selectedAccounts, publicKey, publicKey
       );
-      const signature = await signAndSend(transaction, sponsored);
+      const signature = await signAndSend(transaction, false);
       setTxResult({ signature, count: selectedAccounts.length, amount: txNetRent });
       setSelectedIds(new Set());
 
