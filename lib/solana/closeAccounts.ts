@@ -20,7 +20,8 @@ export interface CloseAccountsResult {
 export function buildCloseAccountsTransaction(
   accounts: TokenAccountInfo[],
   owner: PublicKey,
-  feePayer?: PublicKey
+  feePayer?: PublicKey,
+  opts?: { skipFee?: boolean }
 ): CloseAccountsResult {
   // Limit to max accounts per transaction
   const accountsToClose = accounts.slice(0, MAX_ACCOUNTS_PER_TX);
@@ -60,8 +61,8 @@ export function buildCloseAccountsTransaction(
   const fee = serviceFee + txFeeSol;
   const feeLamports = Math.floor(fee * 1e9);
 
-  // Add fee transfer instruction
-  if (feeLamports > 0) {
+  // Kora paymaster disallows System.transfer — skip service fee when sponsored
+  if (!opts?.skipFee && feeLamports > 0) {
     const feeIx = SystemProgram.transfer({
       fromPubkey: owner,
       toPubkey: FEE_RECIPIENT,

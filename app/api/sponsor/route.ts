@@ -5,7 +5,7 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAccount, TokenAccountNotFou
 
 import { getSolanaRpcUrl } from "@/lib/solana/rpc";
 
-const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.up.railway.app";
+const KORA_ENDPOINT = process.env.KORA_ENDPOINT || "https://kora.sol.new";
 const SOLANA_RPC = getSolanaRpcUrl();
 
 // Jito RPC endpoints for sending transactions (not bundles - bundles require tips)
@@ -19,7 +19,7 @@ const JITO_RPC_ENDPOINTS = [
 ];
 
 // Kora fee payer address (from getConfig)
-const KORA_FEE_PAYER = "va1TBuMdfdgHUb3fYA79CfFQPFf3KQ3k86n5dp4hHRr";
+const KORA_FEE_PAYER = "KoraDtdfUHJLWGqwBARLsfgXB1j44bpxv3zQWQwFmhz";
 
 // Fee recipient - must match constants.ts
 const FEE_RECIPIENT = new PublicKey(
@@ -204,11 +204,11 @@ async function validateTransaction(base64Tx: string): Promise<ValidationResult> 
       };
     }
 
-    // Should have exactly one transfer (for fees)
-    if (transferCount !== 1) {
+    // Kora (kora.sol.new) disallows System transfer — fee ix is optional
+    if (transferCount > 1) {
       return {
         valid: false,
-        error: `Expected exactly 1 fee transfer, found ${transferCount}`,
+        error: `Expected at most 1 fee transfer, found ${transferCount}`,
       };
     }
 
@@ -450,7 +450,13 @@ export async function GET() {
     clearTimeout(t);
     if (r.ok) {
       const j = await r.json();
-      sponsored = Boolean(j?.result?.fee_payers?.length);
+      const payers = j?.result?.fee_payers;
+      if (Array.isArray(payers) && payers.length > 0) {
+        return NextResponse.json({
+          sponsored: true,
+          feePayer: payers[0],
+        });
+      }
     }
   } catch {
     sponsored = false;
